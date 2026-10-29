@@ -14,4 +14,5 @@ Capturas tomadas el 29/10/2026 en la aplicación desplegada en la VM Rocky Linux
 | [08-notificaciones-jugador.jpg](08-notificaciones-jugador.jpg) | Jugador: un aviso por cada apuesta resuelta, incluida la recién cerrada. | FA-01 |
 | [09-historial-del-jugador.jpg](09-historial-del-jugador.jpg) | Jugador: su historial con datos, saldo (1000 + 200 − 100 + 50 = 1150), estado y totales. | FA-03, RN-01 |
 | [10-conceptos-del-supervisor.jpg](10-conceptos-del-supervisor.jpg) | Supervisor: conceptos emitidos por turno; los del turno en curso esperan a que termine y los de turnos terminados se pueden registrar. | RN-07 |
+| [11-ronda-abierta-con-apuestas.jpg](11-ronda-abierta-con-apuestas.jpg) | Crupier: ronda 4 de R-01 abierta, con los límites de la mesa (mínimo 10, máximo 500). La apuesta recién registrada (CLI-001, «Negro», 20 × 2) queda Pendiente y se puede modificar mientras la ronda siga abierta. | CU-02, CU-03, RN-09, RN-10, RN-11 |
 | [pruebas-php-artisan-test.txt](pruebas-php-artisan-test.txt) | Salida completa de `php artisan test` en la VM: 121 pruebas y 641 aserciones correctas. | Todos |
