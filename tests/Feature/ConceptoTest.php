@@ -59,7 +59,7 @@ class ConceptoTest extends TestCase
     {
         [$s,$otro,$a] = $this->datos();
         $this->travelTo(Carbon::parse('2026-10-30 10:00:00', 'America/Bogota'));
-        $this->actingAs($s)->post(route('conceptos.store', $a), ['concepto' => 'Inventado'])->assertSessionHasErrors('concepto');
+        $this->actingAs($s)->post(route('conceptos.store', $a), ['concepto' => 'Inventado'])->assertSessionHasErrors(['concepto' => 'El valor seleccionado para concepto no es válido.']);
     }
 
     public function test_d11_otro_supervisor_recibe_403(): void

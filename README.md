@@ -7,6 +7,12 @@ Aplicación web para gestionar un casino: mesas, turnos con crupier y supervisor
 - Autenticación «Zero Knowledge» con SHA-256: la contraseña nunca sale del navegador (ver [documento técnico](docs/documento-tecnico.md)).
 - Roles: Administrador, Crupier, Supervisor y Jugador, con autorización en el servidor.
 
+## Integrantes
+
+- Juan David Ramírez
+- Alejandro Doncel
+- Dana Katalina Díaz
+
 ## Documentación
 
 - [docs/documento-tecnico.md](docs/documento-tecnico.md): framework, arquitectura, modelo de datos, funcionalidades y dificultades.

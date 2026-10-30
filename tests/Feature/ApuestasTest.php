@@ -50,6 +50,19 @@ class ApuestasTest extends TestCase
         }
     }
 
+    public function test_cu_03_apuesta_rechazada_conserva_lo_escrito_en_el_formulario(): void
+    {
+        [$ronda, $jugador] = $this->rondaAbierta();
+        $this->from(route('mi-mesa'))
+            ->followingRedirects()
+            ->post(route('apuestas.store', $ronda), ['ronda_formulario' => $ronda->id, 'codigo_cliente' => $jugador->codigo_cliente, 'tipo_apuesta' => 'Rojo', 'monto' => '9.99', 'factor_pago' => '1.50'])
+            ->assertSee('value="'.$jugador->codigo_cliente.'"', false)
+            ->assertSee('value="Rojo"', false)
+            ->assertSee('value="9.99"', false)
+            ->assertSee('value="1.50"', false);
+        $this->assertDatabaseCount('apuestas', 0);
+    }
+
     public function test_rn_11_saldo_insuficiente_se_rechaza(): void
     {
         [$ronda, $jugador] = $this->rondaAbierta();

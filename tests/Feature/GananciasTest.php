@@ -67,7 +67,7 @@ class GananciasTest extends TestCase
             ->get(route('ganancias.index'))
             ->assertOk()
             ->assertSee('M1')
-            ->assertDontSee('M2');
+            ->assertDontSeeText('M2');
     }
 
     public function test_cu_04_supervisor_no_ve_rondas_de_turnos_que_no_superviso(): void

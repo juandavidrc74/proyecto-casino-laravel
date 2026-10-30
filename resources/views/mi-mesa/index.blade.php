@@ -44,7 +44,7 @@
                         @csrf
                         <label>
                             Resultado
-                            <input name="resultado" required maxlength="255">
+                            <input name="resultado" value="{{ old('resultado') }}" required maxlength="255">
                         </label>
                         @if ($asignacion->mesa->juego->registro_detallado)
                             <fieldset>
@@ -53,7 +53,7 @@
                                 </legend>
                                 @foreach ($ronda->apuestas->pluck('tipo_apuesta')->unique() as $tipo)
                                     <label>
-                                        <input type="checkbox" name="tipos_ganadores[]" value="{{ $tipo }}">
+                                        <input type="checkbox" name="tipos_ganadores[]" value="{{ $tipo }}" @checked(in_array($tipo, old('tipos_ganadores', []), true))>
                                         {{ $tipo }}
                                     </label>
                                 @endforeach
@@ -73,27 +73,29 @@
                         </form>
                     @endif
                 @endif
+                @php($conservar = (string) old('ronda_formulario') === (string) $ronda->id)
                 @if ($ronda->hora_cierre && ! $asignacion->mesa->juego->registro_detallado)
                     <form method="POST" action="{{ route('apuestas.store', $ronda) }}" class="form-grid">
                         @csrf
+                        <input type="hidden" name="ronda_formulario" value="{{ $ronda->id }}">
                         <h3>
                             Registrar apuesta con resultado conocido
                         </h3>
                         <label>
                             Código de cliente
-                            <input name="codigo_cliente" required>
+                            <input name="codigo_cliente" value="{{ $conservar ? old('codigo_cliente') : '' }}" required>
                         </label>
                         <label>
                             Tipo de apuesta
-                            <input name="tipo_apuesta" required>
+                            <input name="tipo_apuesta" value="{{ $conservar ? old('tipo_apuesta') : '' }}" required>
                         </label>
                         <label>
                             Monto
-                            <input name="monto" type="number" min="0.01" step="0.01" required>
+                            <input name="monto" type="number" min="0.01" step="0.01" value="{{ $conservar ? old('monto') : '' }}" required>
                         </label>
                         <label>
                             Factor de pago
-                            <input name="factor_pago" type="number" min="0.01" step="0.01" required>
+                            <input name="factor_pago" type="number" min="0.01" step="0.01" value="{{ $conservar ? old('factor_pago') : '' }}" required>
                         </label>
                         <label>
                             Estado
@@ -101,7 +103,7 @@
                                 <option>
                                     Ganada
                                 </option>
-                                <option>
+                                <option @selected($conservar && old('estado') === 'Perdida')>
                                     Perdida
                                 </option>
                             </select>
@@ -142,24 +144,25 @@
                 @if (! $ronda->hora_cierre && $asignacion->mesa->juego->registro_detallado)
                     <form method="POST" action="{{ route('apuestas.store', $ronda) }}" class="form-grid">
                         @csrf
+                        <input type="hidden" name="ronda_formulario" value="{{ $ronda->id }}">
                         <h3>
                             Registrar apuesta
                         </h3>
                         <label>
                             Código de cliente
-                            <input name="codigo_cliente" required>
+                            <input name="codigo_cliente" value="{{ $conservar ? old('codigo_cliente') : '' }}" required>
                         </label>
                         <label>
                             Tipo de apuesta
-                            <input name="tipo_apuesta" required>
+                            <input name="tipo_apuesta" value="{{ $conservar ? old('tipo_apuesta') : '' }}" required>
                         </label>
                         <label>
                             Monto
-                            <input name="monto" type="number" min="0.01" step="0.01" required>
+                            <input name="monto" type="number" min="0.01" step="0.01" value="{{ $conservar ? old('monto') : '' }}" required>
                         </label>
                         <label>
                             Factor de pago
-                            <input name="factor_pago" type="number" min="0.01" step="0.01" required>
+                            <input name="factor_pago" type="number" min="0.01" step="0.01" value="{{ $conservar ? old('factor_pago') : '' }}" required>
                         </label>
                         <button class="button" type="submit">
                             Registrar apuesta

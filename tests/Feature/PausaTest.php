@@ -33,7 +33,7 @@ class PausaTest extends TestCase
     {
         $jugador = $this->crearJugador();
         $otro = $this->crearJugador('J2');
-        $this->actingAs($jugador->user)->get(route('mi-cuenta'))->assertOk()->assertSee($jugador->codigo_cliente)->assertDontSee($otro->codigo_cliente);
+        $this->actingAs($jugador->user)->get(route('mi-cuenta'))->assertOk()->assertSee($jugador->codigo_cliente)->assertDontSeeText($otro->codigo_cliente);
         $usuarioSinPerfil = User::factory()->create();
         $this->actingAs($usuarioSinPerfil)->get(route('mi-cuenta'))->assertForbidden();
         $this->actingAs($usuarioSinPerfil)->post(route('mi-cuenta.pausa'))->assertForbidden();

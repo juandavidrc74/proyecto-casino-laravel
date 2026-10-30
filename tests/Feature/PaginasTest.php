@@ -64,7 +64,7 @@ class PaginasTest extends TestCase
         $this->actingAs($supervisorEmpleado->user)->get(route('mi-mesa'))->assertForbidden();
 
         $this->actingAs($jugadorUser)->get(route('inicio'))->assertOk();
-        $this->actingAs($jugadorUser)->get(route('empleados.index'))->assertForbidden();
+        $this->actingAs($jugadorUser)->get(route('empleados.index'))->assertForbidden()->assertSee('No tienes permiso para ver esta página.');
         $this->actingAs($jugadorUser)->get(route('mi-mesa'))->assertForbidden();
         $this->actingAs($jugadorUser)->get(route('conceptos.index'))->assertForbidden();
         $this->actingAs($jugadorUser)->get(route('ganancias.index'))->assertForbidden();
