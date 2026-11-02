@@ -2,7 +2,7 @@
 
 Asignatura: Bases de Datos, Administración y Aplicaciones — Pontificia Universidad Javeriana.
 Integrantes: Juan David Ramírez, Alejandro Doncel y Dana Katalina Díaz.
-Fecha de la auditoría: 2026-11-01. Código auditado: rama `main`, commit `1102802`. Ese mismo día se corrigieron y verificaron los tres defectos encontrados (DEF-01, DEF-02 y DEF-03, §18); esta guía describe la aplicación ya corregida.
+Fecha de la auditoría: 2026-11-01. Código auditado: rama `main`, commit `1102802`. Ese mismo día se corrigieron y verificaron los tres defectos encontrados (DEF-01, DEF-02 y DEF-03, §18); esta guía describe la aplicación ya corregida. El 2026-11-02 el plan de pruebas se rehízo como recorrido funcional verificado (§12 a §15).
 
 Fuentes de verdad:
 
@@ -57,6 +57,7 @@ Durante la auditoría no se corrigió nada (regla del encargo). Después, con la
 4. Permisos, sesiones y SHA-256 se probaron **contra el servidor** con `curl` y la sesión real de cada usuario: resultados en [evidencias/auditoria/resultados-servidor-2026-11-01.txt](evidencias/auditoria/resultados-servidor-2026-11-01.txt).
 5. Los flujos de uso se recorrieron en un navegador Edge controlado por script, a 1280×800 (y a 375 px de ancho para celular), y se guardaron **71 capturas reales** en [evidencias/auditoria/](evidencias/auditoria/). No hay capturas fabricadas ni retocadas.
 6. El registro de errores de Laravel (`storage/logs/laravel.log`) no tuvo ningún error durante la auditoría.
+7. El 2026-11-02 el plan de pruebas (§12 a §15) se rehízo como un **recorrido funcional** de punta a punta (F-01 a F-40) y se ejecutó completo en una copia aislada nueva (`~/casino-funcional`, ya borrada): [recorrido-funcional-2026-11-02.txt](evidencias/auditoria/recorrido-funcional-2026-11-02.txt).
 
 ---
 
@@ -245,7 +246,7 @@ Modelo de datos (tablas del casino): `users` (usuario, SHA-256, rol), `empleados
 | Protección de rutas privadas | Grupo `auth` (`routes/web.php:28`). | `GET` a las 22 páginas sin sesión. | Redirección a `/login`. | `302 → login` en las 22. | resultados §2 | APROBADO |
 | Acceso a las funciones tras autenticarse | Menú por rol (`layouts/partials/menu.blade.php:2-53`). | Entrar con cada rol. | Menú del rol. | Admin: 7 opciones; crupier: Inicio y Mi mesa; supervisor: Inicio, Mis conceptos y Ganancias; jugador: Inicio, Mi cuenta y Mi historial. | AUD-03, AUD-20, AUD-33, AUD-37 | APROBADO |
 
-**Procedimiento manual (Persona A o B):**
+**Procedimiento manual:**
 1. Abre `http://localhost:8010/login`.
 2. Escribe `admin` y una contraseña inventada, y pulsa «Entrar». Debe aparecer el recuadro rojo «Usuario o contraseña incorrectos.» (captura AUD-02).
 3. Repite con la contraseña de demostración. Debe abrir «Inicio» con el texto «Sesión iniciada como admin (Administrador)» y el menú «Inicio · Empleados · Jugadores · Mesas · Turnos · Ganancias · Suspensiones» (AUD-03).
@@ -950,7 +951,7 @@ En todas las guías, «la aplicación» es `http://localhost:8010` (§2.2) y los
   1. «Jugadores» → «Abonos» en la fila del empleado: muestra «Deuda actual», «Límite de dos salarios» y «Abonos anteriores».
   2. Escribe el monto en «Monto del abono».
   3. Pulsa «Registrar abono».
-- **Datos de prueba.** Ver la prueba compartida C-04 (§14).
+- **Datos de prueba.** Ver el paso F-30 del recorrido funcional (§13).
 - **Resultado esperado.** «Abono registrado.», la deuda baja y, si queda en el límite o por debajo, la suspensión por pérdida de empleado termina y el empleado recibe una notificación.
 - **Resultado observado.** Deuda de 250 con límite 200 → abono de 100 → deuda 150 → reactivado (AUD-68, AUD-69).
 - **Errores que se pueden comprobar.**
@@ -1203,181 +1204,269 @@ En todas las guías, «la aplicación» es `http://localhost:8010` (§2.2) y los
 
 ---
 
-## 12. Plan de pruebas manuales — preparación y Persona A
+## 12. Plan de pruebas funcionales — preparación
 
-### 12.1. Preparación conjunta (las dos personas, 15 minutos)
+Este plan comprueba que la aplicación **funciona de punta a punta**, como se usaría en el casino:
+- el administrador crea una mesa, contrata a un crupier y a una supervisora, registra jugadores y les asigna la mesa en el turno;
+- el crupier abre rondas, registra apuestas, las corrige y cierra la ronda con su resultado; los premios se pagan solos;
+- los jugadores ven sus avisos, su saldo y su historial;
+- el sistema suspende a quien corresponde (pérdida diaria, pausa voluntaria, deuda e investigación de empleados);
+- el administrador atiende esas suspensiones y revisa las ganancias, y el supervisor emite su concepto.
 
-1. **Ventana de tiempo.** Las pruebas del crupier necesitan un turno en curso. Acuerden una franja de 2 horas y, justo al empezar, la Persona A vuelve a cargar los datos de demostración (§2.5).
-   - El turno en curso irá desde la hora en punto de la carga hasta 2 horas después. Anoten esa hora de fin.
-   - La Persona B debe terminar sus pruebas de crupier (B-01 a B-13) antes de esa hora.
-2. **Acceso.**
-   - Si los dos tienen acceso SSH a la VM, cada uno abre su túnel (§2.2) desde su PC.
-   - Si solo un PC tiene la llave, trabajen en ese PC con dos navegadores distintos (por ejemplo, Chrome para A y Edge para B), o con una ventana normal y otra de incógnito: cada navegador mantiene su propia sesión.
-3. **Usuarios.** Los 9 de §2.3, todos con la contraseña de `CASINO_DEMO_PASSWORD`. La Persona A creará además usuarios nuevos y entregará a B, en privado (no en el repositorio ni en el chat del grupo), la contraseña de los que B necesite.
-4. **Registros que crea cada persona.**
-   - A: todo con prefijo `A-` o `CLI-A…`.
-   - B: no crea registros de configuración; usa los que A crea para B (`CLI-B01`, `CLI-B02`, `A-EMP-02`) y los sembrados.
-5. **Datos que nadie debe modificar.**
-   - Las contraseñas de los usuarios sembrados.
-   - Las mesas R-01, B-01 y P-01 (límites y juego).
-   - El turno en curso y sus tres asignaciones.
-   - `CLI-001`: solo B lo usa, y su pausa es lo último que se prueba.
-   - `EMP-CLI-003`: solo se toca en la prueba compartida C-03.
-6. **Comprobar que no interfieren.**
-   - Antes de cada prueba compartida, avísense por chat.
-   - Si un saldo no coincide con §15, revisen el historial del jugador (§11.8): ahí aparece cada apuesta con su hora y su mesa.
-7. **Registro.** Cada uno llena su parte de la hoja de resultados (§14.3) y guarda sus capturas en `docs/evidencias/sustentacion/` con el identificador de la prueba en el nombre (por ejemplo, `A-04-empleado-registrado.png`).
+**Qué no se repite aquí.** Las validaciones, como datos repetidos, montos fuera de los límites, contraseñas cortas, menores de edad o permisos entre roles, ya las comprueban:
+- las 125 pruebas automáticas (§17);
+- la auditoría (§7 y §8);
+- la sección «Errores que se pueden comprobar» de cada funcionalidad del manual (§11), si quieren ver alguna en vivo.
 
-**Prueba compartida inicial C-01 (antes de empezar):** la Persona A registra, desde «Jugadores» → «Registrar jugador»:
+En este recorrido solo aparecen los bloqueos que forman parte del negocio: las suspensiones.
 
-| Código | Documento | Nombre | Edad | Saldo | Usuario |
-|---|---|---|---|---|---|
-| `CLI-B01` | `1020000101` | Bruno Prueba | 25 | 1500 | `b_jugador1` |
-| `CLI-B02` | `1020000102` | Carla Prueba | 30 | 1500 | `b_jugador2` |
+**Verificado.** El 02/11/2026 se ejecutó este recorrido completo, paso por paso y con estos mismos datos, en una copia aislada de la aplicación en la VM: mismo código y base de datos aparte.
+- Los resultados esperados de §13 y §15 son los que se observaron. Las horas que aparecen («16:05») son las de esa ejecución; las de ustedes serán otras.
+- Salida completa: [recorrido-funcional-2026-11-02.txt](evidencias/auditoria/recorrido-funcional-2026-11-02.txt).
+- Excepción: F-35 necesita esperar a que termine el turno.
+  - El concepto de una supervisora nueva se verificó con un turno ya terminado.
+  - Que el crupier vea su mesa nueva en el turno siguiente no se vio en vivo. Lo cubre `RondasTest` (el crupier opera solo en su turno en curso).
 
-Además:
-- en «Empleados» registra a `A-EMP-02`, «Mario Prueba», rol Crupier, **salario 100**, sin competencias, usuario `a_empleado2`;
-- después, «Registrar como jugador»: código `EMP-CLI-A02`, edad 30, saldo 1000.
+### 12.1. Qué cubre
 
-Por último, comunica a B que están creados y le pasa en privado las contraseñas de `b_jugador2` y `a_empleado2`.
+| Requisito | Pasos |
+|---|---|
+| Gestión de mesas (caso de uso), turnos y asignaciones | F-01, F-05, F-06, F-36, F-39 |
+| Gestión de empleados (funcionalidad adicional 2) | F-02, F-03, F-25, F-37 |
+| Registro de jugadores | F-04, F-38 |
+| Gestión de rondas (caso de uso) | F-07, F-08, F-12, F-13, F-18, F-19 |
+| Gestión de apuestas (caso de uso), resultado y pago de premios | F-09 a F-12, F-20 |
+| Póker: apuestas registradas al conocer el resultado | F-18 a F-20 |
+| Gestión de ganancias (caso de uso) | F-16, F-17, F-33 |
+| Notificaciones (funcionalidad adicional 1) | F-14, F-15, F-22, F-28, F-30, F-31, F-34 |
+| Historial de clientes (funcionalidad adicional 3) | F-14, F-15, F-32 |
+| Autorizaciones y suspensiones (funcionalidad adicional 4): RN-14, RN-15, RN-17 y RN-18 | F-21 a F-31 |
+| Concepto del supervisor | F-34, F-35 |
+| Login, roles y cierre de sesión | En cada etapa (cada usuario ve solo su menú) y F-40 |
 
-### 12.2. Plan de la Persona A (administración, configuración, supervisión y seguridad)
+### 12.2. Preparación (10 minutos)
 
-| Id | Objetivo | Rol | Datos previos | Pasos | Resultado esperado | Captura | Criterio de aprobación |
-|---|---|---|---|---|---|---|---|
-| A-01 | Login y rechazo | — / Administrador | Usuarios sembrados | 1. Abrir `/login`. 2. `admin` + contraseña inventada → «Entrar». 3. `admin` + contraseña real → «Entrar». | 2: «Usuario o contraseña incorrectos.» 3: «Inicio», «Sesión iniciada como admin (Administrador)» y menú de 7 opciones. | A-01a (error), A-01b (inicio) | Los dos resultados aparecen exactamente así. |
-| A-02 | Zero Knowledge visible | Administrador | — | 1. F12 → pestaña Red. 2. Cerrar sesión y volver a entrar. 3. Abrir la solicitud `POST login` → Carga útil. | Solo `_token`, `nonce`, `respuesta` (64 hexadecimales) y `username`. | A-02 | No aparece la contraseña. |
-| A-03 | Cierre de sesión | Administrador | Sesión abierta | 1. «Cerrar sesión». 2. Escribir `localhost:8010/empleados`. | Vuelve a «Iniciar sesión». | A-03 | No se ve la página de empleados. |
-| A-04 | Roles: 403 en el servidor | Supervisor, Jugador | — | 1. Entrar como `supervisor1` y abrir `/empleados`, `/turnos` y `/mi-mesa`. 2. Entrar como `jugador1` y abrir `/jugadores/1` y `/ganancias`. | «403 No tienes permiso para ver esta página.» en todas. | A-04 | Las cinco dan 403. |
-| A-05 | Alta de empleado y validaciones | Administrador | — | 1. «Empleados» → «Registrar empleado». 2. Documento `EMP-crupier1` (repetido), resto válido → Guardar. 3. Documento `A-EMP-01`, contraseñas distintas → Guardar. 4. Contraseñas iguales de al menos 8 caracteres, rol Crupier, salario 2500, competencia Ruleta, usuario `a_crupier` → Guardar. | 2: «El valor del campo documento ya está en uso.» 3: «Las contraseñas no coinciden.» 4: «Empleado registrado correctamente.» y la fila. | A-05 | Los tres mensajes y la fila nueva. |
-| A-06 | Editar empleado y usar la cuenta | Administrador, Crupier | A-05 | 1. «Editar» `A-EMP-01` → marcar también Blackjack, dejar la contraseña vacía → Guardar. 2. Cerrar sesión y entrar como `a_crupier`. 3. «Mi mesa». | 1: «Empleado actualizado correctamente.», competencias «Ruleta, Blackjack». 2: entra. 3: «No tienes una mesa asignada en el turno en curso.». | A-06 | La cuenta funciona y no tiene mesa. |
-| A-07 | Verificar SHA-256 del usuario creado | — (terminal) | A-05 | Ejecutar el comando de §5.2 con `a_crupier` en lugar de `jugador4` y escribir la contraseña cuando la pida. | `coincide` | A-07 (terminal, sin la contraseña) | Imprime `coincide`. |
-| A-08 | Borrados protegidos | Administrador | Datos sembrados | 1. «Empleados» → «Borrar» en Crupier Uno → Aceptar. 2. «Jugadores» → «Borrar» en `CLI-001` → Aceptar. 3. «Empleados» → «Borrar» en `A-EMP-01` → Aceptar. | 1: «No se puede borrar el empleado porque tiene asignaciones registradas.» 2: «No se puede borrar un jugador que tiene apuestas registradas.» 3: «Empleado y cuenta borrados correctamente.» | A-08 | Los tres mensajes. |
-| A-09 | Alta de jugador y validaciones | Administrador | — | 1. «Registrar jugador» con código `CLI-A01`, edad 17. 2. Código `CLI-001` (repetido), edad 18. 3. Contraseña `corta`. 4. Datos válidos: `CLI-A01`, documento `1020000201`, «Ana Prueba», 18, saldo 500, usuario `a_jugador`. | 1: el navegador no deja guardar (mínimo 18). 2: «El valor del campo código de cliente ya está en uso.» 3: «La contraseña debe tener al menos 8 caracteres.» 4: «Jugador registrado correctamente.», Estado Activo. | A-09 | Los cuatro resultados. |
-| A-10 | Editar jugador sin tocar el saldo | Administrador | A-09 | «Editar» `CLI-A01` → edad 19 → Guardar. | Se guarda; el formulario no tiene campo de saldo y el saldo sigue en 500. | A-10 | Edad 19, saldo 500. |
-| A-11 | Mesas | Administrador | — | 1. «Registrar mesa» `A-R02`, Ruleta, mínimo 50, máximo 10. 2. Corregir a 10 y 100 → Guardar. 3. «Editar» `A-R02` → máximo 200. 4. «Registrar mesa» `A-X01`, Blackjack, 20/200, y luego «Borrar» `A-X01`. 5. «Borrar» R-01. 6. «Editar» R-01 → juego Blackjack → Guardar. Conserva `A-R02` para A-13. | 1: «El campo apuesta máxima debe ser mayor o igual que 50.» 2-4: registrada, actualizada, registrada y borrada. 5: «No se puede borrar una mesa con asignaciones registradas.» 6: «No se puede cambiar el juego de una mesa con asignaciones.» | A-11 | Todos los mensajes. |
-| A-12 | Turnos | Administrador | Hora de fin F del turno sembrado | 1. «Registrar turno»: hoy, F a F+2 h 30 min. 2. Hoy, F−1 h a F+1 h. 3. Hoy, 23:00 a 00:30. 4. Hoy, F a F+2 h (contiguo al sembrado). | 1: «… no puede superar 120 minutos.» 2: «… se solapa …». 3: «… no puede cruzar medianoche.». 4: «Turno registrado correctamente.» (comprueba la corrección de DEF-02). | A-12 (paso 4) | Los cuatro resultados. |
-| A-13 | Asignaciones y reglas | Administrador | Turno del paso A-12.4 | En «Ver asignaciones» de ese turno, «Asignar»: 1. R-01 + Crupier Dos + Supervisora Uno. 2. P-01 + Crupier Dos + Supervisor Dos. 3. R-01 + Crupier Uno + Supervisora Uno. 4. B-01 + Crupier Uno + Supervisor Dos. 5. R-01 + Crupier Tres + Supervisora Uno. 6. A-R02 + Crupier Uno + Supervisora Uno. 7. B-01 + Crupier Dos + Supervisor Dos. 8. P-01 + Crupier Dos + Supervisora Uno. | 1: sin competencia (crupier). 2: sin competencia (supervisor). 3: «no puede repetir mesa en la misma jornada». 4 y 5: registradas. 6: «El crupier ya tiene una mesa en este turno.» 7: «La mesa ya tiene una asignación en este turno.» (también avisa que Crupier Dos repite B-01). 8: registrada. | A-13 (tabla final) | Tres asignaciones finales y los cinco rechazos. |
-| A-14 | Turno con asignaciones | Administrador | A-13 | «Turnos» → «Editar» y luego «Borrar» en el turno de A-12.4. | «No se puede editar un turno con asignaciones.» / «No se puede borrar un turno con asignaciones.» | A-14 | Ambos mensajes. |
-| A-15 | Conceptos del supervisor | Supervisor, Administrador | Turnos sembrados de hace 3 a 5 días | 1. Entrar como `supervisor1` → «Mis conceptos». 2. En el turno de hoy: dice «Pendiente de finalizar turno». 3. En el turno más antiguo de P-01: «Sospecha de fraude» → «Registrar concepto». 4. Entrar como `admin` → «Notificaciones». | 3: «Concepto registrado correctamente.» 4: «Se registró una sospecha de fraude en la mesa P-01.». En «Turnos» → turno de ese día, la columna Concepto lo muestra. | A-15a, A-15b | El concepto queda y llega la notificación. |
-| A-16 | Ganancias | Administrador, Supervisor | Después de las pruebas B-05 y B-09 | 1. `admin` → «Ganancias», Desde = Hasta = hoy, Mesa R-01 → «Filtrar». 2. Desde = mañana, Hasta = hoy. 3. `supervisor2` → «Ganancias». | 1: valores de §15.3. 2: «El campo fecha desde debe ser una fecha anterior o igual a fecha hasta.» 3: solo mesas que supervisó. | A-16 | Coinciden con §15.3. |
-| A-17 | Historial del cliente | Administrador | Después de B-09 | «Jugadores» → «Historial» de `CLI-001`. | Saldo y apuestas de §15.2; totales coherentes. | A-17 | Coincide con §15.2. |
+1. **Elijan la hora.** Empiecen al comienzo de una hora, entre las :00 y las :15.
+   - La carga de datos crea un turno en curso desde la hora en punto hasta 2 horas después.
+   - Las etapas 1, 2, 5, 6 y 7 necesitan ese turno.
+   - Todo el recorrido toma alrededor de una hora.
+2. **Carguen los datos de demostración.** Hagan copia y carga con el comando de §2.5; borra todo lo que haya.
+   - La salida incluye una línea `Turno en curso: AAAA-MM-DD HH:00:00–HH:00:00`.
+   - Anoten la hora de fin: en este plan se llama **F**.
+3. **Abran la aplicación.** Abran el túnel y entren a `http://localhost:8010` (§2.2).
+4. **Usen dos ventanas.**
+   - Una ventana normal para el **administrador** (`admin`).
+   - Una ventana de incógnito, u otro navegador, para **los demás usuarios**.
+   - Un navegador guarda una sola sesión: en la segunda ventana, pulsen «Cerrar sesión» antes de entrar con otro usuario.
+5. **Contraseñas.**
+   - `admin`, `crupier3` y `supervisor1` vienen de la carga y usan la contraseña de `CASINO_DEMO_PASSWORD` (§2.2).
+   - Para los cuatro usuarios que van a crear (`pedro`, `sofia`, `laura` y `mateo`), elijan una contraseña de al menos 8 caracteres. Puede ser la misma para los cuatro; anótenla fuera del repositorio.
+6. **Evidencias.** Guarden las capturas en `docs/evidencias/sustentacion/` con el identificador del paso en el nombre (por ejemplo, `F-12-ronda-cerrada.png`). Los pasos que conviene capturar están marcados en la hoja de resultados (§14.2).
 
----
+### 12.3. Personajes
 
-## 13. Plan de pruebas manuales — Persona B (operación del casino, juego y validaciones)
-
-Todas las pruebas de crupier deben hacerse **antes de la hora de fin del turno en curso**. Para un resultado reproducible, usa exactamente los datos indicados. B no crea configuración: usa los jugadores que A creó en C-01.
-
-| Id | Objetivo | Rol | Datos previos | Pasos | Resultado esperado | Captura | Criterio de aprobación |
-|---|---|---|---|---|---|---|---|
-| B-01 | Ver la mesa asignada | Crupier (`crupier1`) | Datos recién cargados | 1. Entrar como `crupier1`. 2. «Mi mesa». | «R-01 · Ruleta», «Apuesta mínima: 10.00 · Máxima: 500.00», «Ronda 3 · Abierta» con «CLI-001 · Rojo · 50.00 × 2.00 · Pendiente». | B-01 | Se ve así. |
-| B-02 | Registrar una apuesta válida | Crupier | B-01 | En «Registrar apuesta»: `CLI-001`, `Rojo`, `20`, `2` → «Registrar apuesta». | «Apuesta registrada correctamente.» y la apuesta pendiente en la lista. | B-02 | Aparece la apuesta. |
-| B-03 | Validaciones de la apuesta | Crupier | B-01 | Registrar, una a una: 1. `CLI-001`, `Pleno 17`, `5`, `36`. 2. Igual con monto `600`. 3. `CLI-999`, `Rojo`, `20`, `2`. 4. `CLI-002`, `Rojo`, `20`, `2`. 5. `CLI-003`, `Rojo`, `20`, `2`. | 1 y 2: «El monto debe estar entre el mínimo y el máximo de la mesa.» 3: «El código de cliente no existe.» 4: «El jugador está suspendido: Pausa voluntaria hasta …» 5: «El jugador está suspendido: Pérdida diaria hasta …». El formulario conserva lo escrito. | B-03 (paso 4) | Los cinco rechazos; ninguna apuesta nueva. |
-| B-04 | Modificar y anular | Crupier | C-01 | 1. `CLI-B01`, `Negro`, `30`, `2`. 2. `CLI-B01`, `Pleno 17`, `10`, `36`. 3. «Anular» en Pleno 17. 4. «Modificar» en Negro → Monto `40` → «Guardar». | 1-2: registradas. 3: «Apuesta anulada correctamente.» 4: «Apuesta modificada correctamente.» y «Negro · 40.00 × 2.00». | B-04 | Saldo de CLI-B01 = 1460 (§15.2). |
-| B-05 | Cerrar la ronda y pagar | Crupier | B-02, B-04 | 1. Abrir «Mi mesa» también en una **segunda pestaña** y dejarla quieta. 2. En la primera: «Resultado» `Rojo 12`, marcar solo «Rojo» → «Cerrar ronda». | «Ronda cerrada correctamente.»; Rojo 50 → «Ganada · Premio 100.00»; Rojo 20 → «Ganada · Premio 40.00»; Negro 40 → «Perdida · Premio 0.00». | B-05 | Premios = monto × factor; saldo de CLI-001 = 1170. |
-| B-06 | Sin pago duplicado | Crupier | B-05 | En la segunda pestaña (todavía con el formulario de cierre): escribir `Rojo 12`, marcar Rojo → «Cerrar ronda». | «La ronda ya está cerrada.»; el saldo de CLI-001 sigue en 1170. | B-06 | No cambia ningún saldo. |
-| B-07 | Ronda correlativa y anulación | Crupier | B-05 | 1. «Abrir ronda». 2. «Anular ronda». | 1: «Ronda abierta correctamente.» y «Ronda 4 · Abierta». 2: «Ronda anulada correctamente.». | B-07 | Número 4 = siguiente al 3. |
-| B-08 | Vista del jugador | Jugador (`jugador1`) | B-05 | 1. Entrar como `jugador1`. 2. «Mi cuenta». 3. «Mi historial». 4. «Notificaciones» → «Marcar todas como leídas». | 2: saldo 1170.00, estado Activo. 3: las apuestas de B-05 resueltas. 4: avisos «Tu apuesta de la ronda 3 fue resuelta: Ganada.»; el contador queda en 0. | B-08 | Coincide con §15.2. |
-| B-09 | Póker y saldo insuficiente | Crupier (`crupier3`) | — | 1. Entrar como `crupier3` → «Mi mesa» (P-01) → «Abrir ronda»: no hay formulario de apuesta. 2. «Resultado» `Escalera de color` → «Cerrar ronda». 3. En «Registrar apuesta con resultado conocido»: `CLI-001`, `Mano ganadora`, `100`, `2`, Estado Ganada → «Registrar apuesta». 4. `CLI-001`, `Mano perdida`, `1500`, `1`, Perdida. | 1: sin formulario mientras está abierta. 3: «Ganada · Premio 200.00». 4: «El saldo del jugador es insuficiente.» | B-09 | Saldo de CLI-001 = 1270. |
-| B-10 | Suspensión por pérdida diaria (RN-14) | Crupier, Jugador | C-01 | 1. Como `crupier3`, en la misma ronda de póker: `CLI-B02`, `Mano perdida`, `1010`, `1`, Perdida. 2. `CLI-B02`, `Mano ganadora`, `50`, `2`, Ganada. 3. Entrar como `b_jugador2` → «Mi cuenta» y «Notificaciones». | 1: registrada. 2: «El jugador está suspendido: Pérdida diaria hasta …» (24 h). 3: Estado «Suspendido» y aviso «Tu cuenta fue suspendida por Pérdida diaria hasta …». | B-10 | La segunda apuesta se rechaza. |
-| B-11 | Empleado en investigación (RN-18) | Crupier | Datos sembrados | Como `crupier3`: `EMP-CLI-003`, `Mano ganadora`, `100`, `2`, Ganada. | «El jugador está suspendido: Investigación.» | B-11 | Rechazada. |
-| B-12 | Límites del crupier | Crupier (`crupier2`) | — | 1. Entrar como `crupier2` → «Mi mesa». 2. Abrir `localhost:8010/empleados`. | 1: solo B-01 · Blackjack. 2: 403. | B-12 | Solo su mesa; 403. |
-| B-13 | Pausa voluntaria (RN-15) — **la última de jugador1** | Jugador, Crupier | B-09 terminado | 1. `jugador1` → «Mi cuenta» → «Solicitar pausa de 24 horas» → Aceptar. 2. `crupier1` → «Mi mesa» → «Abrir ronda» → apuesta `CLI-001`, `Rojo`, `20`, `2`. 3. «Anular ronda». | 1: «Tu pausa de 24 horas comenzó.», Estado Suspendido. 2: «El jugador está suspendido: Pausa voluntaria hasta …». 3: ronda anulada. | B-13 | La apuesta se rechaza. |
-
----
-
-## 14. Pruebas compartidas y secuencia de ejecución
-
-### 14.1. Pruebas compartidas
-
-| Id | Qué demuestra | Orden y responsables | Qué se comunican |
+| Quién | Usuario | Rol | Datos |
 |---|---|---|---|
-| C-01 | Datos de B creados por el Administrador | A crea `CLI-B01`, `CLI-B02` y `A-EMP-02` con su perfil `EMP-CLI-A02` (§12.1) → B confirma, desde `crupier1`, que una apuesta de `CLI-B01` se registra (B-04). | A → B: «Jugadores creados» y las dos contraseñas en privado. |
-| C-02 | El cierre de ronda alimenta ganancias e historial | B hace B-05 → A hace A-16 (paso 1) y A-17. | B → A: «Ronda 3 de R-01 cerrada a las hh:mm». |
-| C-03 | Fin de investigación y nueva investigación (RN-18) | 1. B hace B-11 (rechazo). 2. A: «Suspensiones» → «Finalizar investigación» de EMP-CLI-003 → Aceptar. 3. B entra como `crupier3` → «Mi cuenta» (Activo) y «Notificaciones» («El Administrador finalizó la investigación y tu cuenta fue reactivada.»). 4. B entra como `crupier2` → «Mi mesa» (B-01) → «Abrir ronda» → `EMP-CLI-003`, `21`, `600`, `3` → «Resultado» `21`, marcar `21` → «Cerrar ronda». 5. A → «Suspensiones» y «Notificaciones». | B → A: «B-11 hecho». A → B: «Investigación finalizada». B → A: «Ronda de B-01 cerrada». | 4: «Ganada · Premio 1800.00». 5: EMP-CLI-003 de nuevo en «Investigación» (indefinido) y aviso «La cuenta de Crupier Tres fue suspendida por Investigación.». |
-| C-04 | Deuda de empleado y reactivación por abono (RN-17) | 1. B, como `crupier3`, en la ronda de póker cerrada: `EMP-CLI-A02`, `Mano perdida`, `250`, `1`, Perdida → luego otra de `50` → rechazo «Pérdida de empleado». 2. A: «Jugadores» → «Abonos» de `EMP-CLI-A02`: «Deuda actual: 250.00», «Límite de dos salarios: 200.00» → abono `300` → rechazo → abono `100` → «Abono registrado.», deuda 150. 3. B entra como `a_empleado2` → «Notificaciones». | B → A: «Pérdida de 250 registrada». A → B: «Abono hecho». | 1: suspensión. 2: el abono de 300 da «El abono debe ser mayor que cero y no superar la deuda actual.» (el navegador puede bloquearlo antes por el máximo); el de 100 reactiva. 3: «Tu cuenta fue suspendida por Pérdida de empleado.» y «Un abono redujo la deuda y tu cuenta fue reactivada.». |
-| C-05 | El Administrador se entera de la suspensión automática | Tras B-10, A → «Notificaciones» y «Suspensiones». | B → A: «B-10 hecho». | «La cuenta de Carla Prueba fue suspendida por Pérdida diaria hasta …» y la fila en «Suspensiones activas». |
-| C-06 | La pausa se ve en el Administrador | Tras B-13, A → «Suspensiones». | B → A: «B-13 hecho». | Fila «CLI-001 · Ana Jugadora · Pausa voluntaria». No hay notificación al Administrador (por diseño). |
+| Mesa nueva | — | — | `R-02`, Ruleta, apuesta mínima 10, máxima 300 |
+| Pedro Gómez | `pedro` | Crupier | Documento `1030000001`, salario 900, competencia Ruleta |
+| Sofía Herrera | `sofia` | Supervisor | Documento `1030000002`, salario 400, competencia Ruleta |
+| Laura Martínez | `laura` | Jugador | `CLI-100`, documento `1040000001`, 25 años, saldo 1000 |
+| Mateo Ruiz | `mateo` | Jugador | `CLI-101`, documento `1040000002`, 40 años, saldo 2000 |
+| (de la carga) | `crupier3` | Crupier | Atiende P-01 (Póker, 50 a 2000) en el turno en curso |
+| (de la carga) | `supervisor1` | Supervisor | Tiene turnos pasados de P-01 sin concepto |
 
-### 14.2. Secuencia recomendada
+Los salarios de Pedro y Sofía son bajos a propósito: así las reglas de empleados se disparan con apuestas pequeñas. Esas reglas son la deuda mayor que dos salarios y la ganancia mayor que un salario.
 
-| Momento | Persona A | Persona B |
-|---|---|---|
-| T0 (inicio) | §12.1: cargar los datos y anotar la hora de fin F; C-01 | Abrir el túnel o el navegador; revisar §2.3 |
-| T0 + 15 min | A-01 a A-14, en orden. Usa solo registros `A-` y el turno nuevo de A-12; **no** toca el turno en curso | B-01 a B-07, en orden; luego B-08 |
-| T0 + 50 min | C-02 (A-16 paso 1 y A-17), C-05 | B-09, B-10, B-11 |
-| T0 + 65 min | C-03 (paso 2), C-04 (paso 2) | C-03 (pasos 1, 3 y 4), C-04 (pasos 1 y 3) — **antes de F** |
-| T0 + 85 min | A-15, A-16 (pasos 2 y 3), C-06 | B-12, B-13 (al final) |
-| Cierre | Revisar la hoja de resultados juntos | Ídem |
+---
 
-Dependencias que obligan a este orden:
-- Toda apuesta necesita un turno en curso, una mesa asignada al crupier, una ronda (abierta, o cerrada en póker) y un jugador activo con saldo.
-- El jugador lo crea A en C-01; el turno, la asignación y la ronda abierta de R-01 vienen del seeder.
+## 13. Recorrido funcional paso a paso
 
-### 14.3. Hoja de resultados
+Hagan las etapas en orden: cada una usa lo que dejó la anterior. «Ventana admin» es la del administrador; «otra ventana» es la de los demás usuarios.
 
-| Prueba | Responsable | Resultado esperado | Resultado observado | Evidencia | Estado |
-|---|---|---|---|---|---|
-| C-01 | A, B | Jugadores y empleado de prueba creados | | | Pendiente |
-| A-01 | A | Login rechazado y aceptado | | | Pendiente |
-| A-02 | A | La carga útil no contiene la contraseña | | | Pendiente |
-| A-03 | A | Tras el cierre, la URL protegida pide login | | | Pendiente |
-| A-04 | A | 403 en cinco URL ajenas | | | Pendiente |
-| A-05 | A | 2 rechazos y alta del empleado | | | Pendiente |
-| A-06 | A | Edición y uso de la cuenta nueva | | | Pendiente |
-| A-07 | A | `coincide` (SHA-256) | | | Pendiente |
-| A-08 | A | 2 borrados bloqueados y 1 permitido | | | Pendiente |
-| A-09 | A | 3 rechazos y alta del jugador | | | Pendiente |
-| A-10 | A | Edad cambiada, saldo igual | | | Pendiente |
-| A-11 | A | Validación, CRUD y bloqueos de mesas | | | Pendiente |
-| A-12 | A | 3 rechazos y 1 turno contiguo registrado | | | Pendiente |
-| A-13 | A | 5 rechazos y 3 asignaciones | | | Pendiente |
-| A-14 | A | Turno con asignaciones bloqueado | | | Pendiente |
-| A-15 | A | Concepto registrado y notificación | | | Pendiente |
-| A-16 | A | Ganancias = §15.3; rango inválido rechazado | | | Pendiente |
-| A-17 | A | Historial = §15.2 | | | Pendiente |
-| B-01 | B | Mesa R-01 y ronda 3 abierta | | | Pendiente |
-| B-02 | B | Apuesta registrada | | | Pendiente |
-| B-03 | B | 5 rechazos | | | Pendiente |
-| B-04 | B | Anulación y modificación; CLI-B01 = 1460 | | | Pendiente |
-| B-05 | B | Premios 100 y 40; CLI-001 = 1170 | | | Pendiente |
-| B-06 | B | «La ronda ya está cerrada.» | | | Pendiente |
-| B-07 | B | Ronda 4 abierta y anulada | | | Pendiente |
-| B-08 | B | Vista del jugador coherente | | | Pendiente |
-| B-09 | B | Póker: premio 200; saldo insuficiente | | | Pendiente |
-| B-10 | B | CLI-B02 suspendido 24 h | | | Pendiente |
-| B-11 | B | Investigación bloquea | | | Pendiente |
-| B-12 | B | Solo su mesa; 403 | | | Pendiente |
-| B-13 | B | Pausa bloquea apuestas | | | Pendiente |
-| C-02 | A, B | Ganancias e historial reflejan B-05 | | | Pendiente |
-| C-03 | A, B | Reactivación y nueva investigación | | | Pendiente |
-| C-04 | A, B | Suspensión por deuda y reactivación | | | Pendiente |
-| C-05 | A, B | Notificación de suspensión al admin | | | Pendiente |
-| C-06 | A, B | Pausa visible en Suspensiones | | | Pendiente |
+### Etapa 1 — El administrador prepara el casino (ventana admin)
 
-Estados: **Aprobado**, **Fallido**, **Pendiente**, **Bloqueado** (por ejemplo, si terminó el turno en curso).
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-01 | `admin` | 1. Entrar como `admin`. 2. «Mesas» → «Registrar mesa». 3. Código `R-02`, Juego Ruleta, Apuesta mínima `10`, Apuesta máxima `300`. 4. «Guardar mesa». | «Mesa registrada correctamente.» La lista muestra `R-02 · Ruleta · 10.00 · 300.00`. |
+| F-02 | `admin` | 1. «Empleados» → «Registrar empleado». 2. Documento `1030000001`, Nombre completo `Pedro Gómez`, Rol Crupier, Salario mensual `900`, Competencias: Ruleta, Nombre de usuario `pedro`, su contraseña y la confirmación. 3. «Guardar empleado». | «Empleado registrado correctamente.» Fila `1030000001 · Pedro Gómez · Crupier · 900.00 · Ruleta`, con perfil de jugador «No». |
+| F-03 | `admin` | Igual que F-02 con Documento `1030000002`, `Sofía Herrera`, Rol Supervisor, Salario `400`, Competencias: Ruleta, usuario `sofia`. | «Empleado registrado correctamente.» Fila `Sofía Herrera · Supervisor · 400.00 · Ruleta`. |
+| F-04 | `admin` | 1. «Jugadores» → «Registrar jugador». 2. Documento `1040000001`, Nombre completo `Laura Martínez`, Código de cliente `CLI-100`, Edad `25`, Saldo inicial `1000`, usuario `laura` y su contraseña. 3. «Guardar jugador». 4. Repetir con `1040000002`, `Mateo Ruiz`, `CLI-101`, `40`, `2000`, usuario `mateo`. | «Jugador registrado correctamente.» dos veces. Filas `CLI-100 · Laura Martínez · 25 · 1000.00 · Activo` y `CLI-101 · Mateo Ruiz · 40 · 2000.00 · Activo`. |
+| F-05 | `admin` | **Asignar la mesa al crupier en el turno en curso.** 1. «Turnos» → en la fila de hoy que termina a la hora F, «Ver asignaciones»: ya tiene R-01, B-01 y P-01 (de la carga). 2. En «Añadir asignación»: Mesa `R-02`, Crupier `Pedro Gómez`, Supervisor `Sofía Herrera`. 3. «Asignar». | «Asignación registrada correctamente.» El turno tiene 4 mesas; la nueva es `R-02 · Ruleta · Pedro Gómez · Sofía Herrera · Pendiente`. |
+| F-06 | `admin` | **Planear el turno siguiente, con rotación.** 1. «Turnos» → «Registrar turno»: Fecha hoy, Hora de inicio F, Hora de fin F + 2 h → «Guardar turno». 2. «Ver asignaciones» del turno nuevo → Mesa `R-01`, `Pedro Gómez`, `Sofía Herrera` → «Asignar». | «Turno registrado correctamente.» y «Asignación registrada correctamente.» En el turno siguiente Pedro pasa a R-01: rota de mesa, como pide el contexto. Si F + 2 h pasa de medianoche, registren el turno para mañana de 08:00 a 10:00. |
 
-### 14.4. Cómo registrar un defecto
+### Etapa 2 — El crupier atiende su mesa (otra ventana)
 
-Cuando una prueba falle, anótenla en la hoja como **Fallido** y agreguen una entrada con este formato (por ejemplo, en `docs/defectos.md`):
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-07 | `pedro` | 1. Entrar como `pedro`. 2. «Mi mesa». | «Sesión iniciada como pedro (Crupier)». Mi mesa: «R-02 · Ruleta», «Apuesta mínima: 10.00 · Máxima: 300.00» y el botón «Abrir ronda». |
+| F-08 | `pedro` | «Abrir ronda». | «Ronda abierta correctamente.» y «Ronda 1 · Abierta». |
+| F-09 | `pedro` | En «Registrar apuesta» (Código de cliente, Tipo de apuesta, Monto, Factor de pago → «Registrar apuesta»), registrar una a una: 1. `CLI-100`, `Rojo`, `100`, `2`. 2. `CLI-100`, `Impar`, `50`, `2`. 3. `CLI-101`, `Negro`, `200`, `2`. 4. `CLI-101`, `Pleno 17`, `20`, `36`. 5. `CLI-100`, `Pleno 5`, `10`, `36` (equivocada a propósito). | «Apuesta registrada correctamente.» cada vez. Cada apuesta aparece como «… · Pendiente · Premio 0.00», con «Modificar» y «Anular». |
+| F-10 | `pedro` | 1. «Anular» en `CLI-100 · Pleno 5`. 2. «Modificar» en `CLI-101 · Negro` → Monto `150` → «Guardar». | 1: «Apuesta anulada correctamente.» y la apuesta desaparece. 2: «Apuesta modificada correctamente.» y `CLI-101 · Negro · 150.00 × 2.00 · Pendiente`. Quedan 4 apuestas. |
+| F-11 | `admin` | «Jugadores». | Laura **850.00** (1000 − 100 − 50) y Mateo **1830.00** (2000 − 150 − 20). El monto se descuenta al apostar; la apuesta anulada devolvió sus 10 y la modificada ajustó la diferencia. |
+| F-12 | `pedro` | **Cerrar la ronda.** 1. Resultado `17 Negro`. 2. En «Tipos ganadores» marcar `Negro`, `Impar` y `Pleno 17`; no marcar `Rojo`. 3. «Cerrar ronda». | «Ronda cerrada correctamente.» y «Ronda 1 · Cerrada · Resultado: 17 Negro». Rojo 100 → Perdida · Premio 0.00. Impar 50 × 2 → Ganada · 100.00. Negro 150 × 2 → Ganada · 300.00. Pleno 17 20 × 36 → Ganada · 720.00. Premio = monto × factor, acreditado en el momento. |
+| F-13 | `pedro` | 1. «Abrir ronda». 2. «Anular ronda». | 1: «Ronda 2 · Abierta» (número correlativo). 2: «Ronda anulada correctamente.» |
+
+### Etapa 3 — Los jugadores ven sus resultados (otra ventana)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-14 | `laura` | 1. «Cerrar sesión» y entrar como `laura`. 2. «Notificaciones». 3. «Mi cuenta». 4. «Mi historial». | 1: la cabecera dice «Notificaciones 2». 2: «Tu apuesta de la ronda 1 fue resuelta: Perdida.» y «Tu apuesta de la ronda 1 fue resuelta: Ganada.» 3: Saldo **950.00** fichas, Estado Activo. 4: 2 apuestas resueltas, total apostado 150.00, premios 100.00, resultado neto −50.00. Aparecen Impar (Ganada, 100.00) y Rojo (Perdida, 0.00); la apuesta anulada no figura. |
+| F-15 | `mateo` | Lo mismo con `mateo`. Al final, «Notificaciones» → «Marcar todas como leídas». | Dos avisos «… fue resuelta: Ganada.». Saldo **2850.00**, Activo. Historial: 2 apuestas, 170.00 apostado, 1020.00 en premios, neto 850.00. Al marcar, «Todas las notificaciones fueron marcadas como leídas.» y el contador queda en 0. |
+
+### Etapa 4 — La supervisora y el administrador revisan las ganancias
+
+Hagan esta etapa **antes** de la etapa 5: después, las cifras de P-01 cambian.
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-16 | `sofia` (otra ventana) | 1. Entrar como `sofia`. 2. «Ganancias» (por defecto, hoy). 3. «Mis conceptos». | 2: solo sus mesas. R-02: 4 apuestas · 320.00 apostado · 1120.00 en premios · 100.00 consolidado · **−800.00** neto: el casino perdió 800 en R-02. R-01 aparece en ceros porque la supervisa en el turno siguiente. 3: R-02 (turno en curso) y R-01 (turno siguiente), ambas con «Pendiente de finalizar turno». |
+| F-17 | `admin` | «Ganancias». | Todas las mesas. R-02 igual que en F-16. P-01: 1 · 1100.00 · 0.00 · 1100.00 · 1100.00 (la pérdida de la carga). B-01 y R-01 en ceros. Total: 5 · 1420.00 · 1120.00 · 1200.00 · 300.00. |
+
+### Etapa 5 — Póker: la apuesta se registra cuando se conoce el resultado (otra ventana)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-18 | `crupier3` | 1. Entrar como `crupier3`. 2. «Mi mesa» → «Abrir ronda». | «P-01 · Póker», «Apuesta mínima: 50.00 · Máxima: 2000.00». «Ronda 5 · Abierta» **sin** formulario de apuesta: en póker no se apuesta mientras la mano está en juego. |
+| F-19 | `crupier3` | Resultado `Escalera de color` → «Cerrar ronda». | «Ronda cerrada correctamente.» En la ronda 5 aparece «Registrar apuesta con resultado conocido». |
+| F-20 | `crupier3` | En ese formulario: `CLI-100`, `Mano ganadora`, `100`, `2`, Estado Ganada → «Registrar apuesta». | «Apuesta registrada correctamente.» y `CLI-100 · Mano ganadora · 100.00 × 2.00 · Ganada · Premio 200.00`. El saldo de Laura pasa a 1050.00. |
+
+### Etapa 6 — Suspensiones de jugadores: pérdida diaria (RN-14) y pausa voluntaria (RN-15)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-21 | `crupier3` | En la ronda 5: 1. `CLI-101`, `Mano perdida`, `1900`, `1`, Perdida → «Registrar apuesta». 2. `CLI-101`, `Mano ganadora`, `50`, `2`, Ganada → «Registrar apuesta». | 1: «Apuesta registrada correctamente.» Hoy Mateo pierde 1050 netos (ganó 850 en R-02 y perdió 1900), más que el umbral de 1000, y queda suspendido 24 horas. 2: «El jugador está suspendido: Pérdida diaria hasta dd/mm/aaaa hh:mm.» (24 horas después). |
+| F-22 | `mateo` | «Mi cuenta» y «Notificaciones». | Saldo **950.00**, Estado «Suspendido», con «Pérdida diaria hasta …». Aviso «Tu cuenta fue suspendida por Pérdida diaria hasta …». |
+| F-23 | `laura` | «Mi cuenta» → «Solicitar pausa de 24 horas» → «Aceptar». | «Tu pausa de 24 horas comenzó.» y Estado «Suspendido», con «Pausa voluntaria hasta …». |
+| F-24 | `pedro` | 1. «Mi mesa» → «Abrir ronda». 2. `CLI-100`, `Rojo`, `20`, `2` → «Registrar apuesta». 3. «Anular ronda». | 2: «El jugador está suspendido: Pausa voluntaria hasta …» y no se registra nada. 3: «Ronda anulada correctamente.» |
+
+### Etapa 7 — Empleados que también juegan (RN-16, RN-17, RN-18)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-25 | `admin` | 1. «Empleados» → «Registrar como jugador» en la fila de Pedro: Código de cliente `EMP-CLI-100`, Edad `30`, Saldo inicial `2000` → «Guardar jugador». 2. Lo mismo con Sofía: `EMP-CLI-101`, `35`, `1500`. | «Jugador registrado correctamente.» dos veces. En «Jugadores» los dos aparecen con «Es empleado: Sí» y el enlace «Abonos». |
+| F-26 | `crupier3` | En la ronda 5: 1. `EMP-CLI-101`, `Mano perdida`, `900`, `1`, Perdida. 2. `EMP-CLI-101`, `Mano ganadora`, `50`, `2`, Ganada. | 1: registrada. Sofía debe 900, más que dos salarios (800), y queda suspendida. 2: «El jugador está suspendido: Pérdida de empleado.» |
+| F-27 | `crupier3` | 1. `EMP-CLI-100`, `Mano ganadora`, `500`, `3`, Ganada. 2. `EMP-CLI-100`, `Mano ganadora`, `50`, `2`, Ganada. | 1: «Ganada · Premio 1500.00». Pedro gana 1000 netos, más que su salario (900), y queda en investigación. 2: «El jugador está suspendido: Investigación.» |
+
+### Etapa 8 — El administrador atiende las suspensiones (ventana admin)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-28 | `admin` | «Notificaciones». | Arriba, los avisos nuevos: «La cuenta de Pedro Gómez fue suspendida por Investigación.», «La cuenta de Sofía Herrera fue suspendida por Pérdida de empleado.» y «La cuenta de Mateo Ruiz fue suspendida por Pérdida diaria hasta …». La pausa de Laura no avisa al administrador; la pidió ella misma. |
+| F-29 | `admin` | «Suspensiones». | Activas: Pedro (Investigación, fin «Indefinido», botón «Finalizar investigación»), Sofía (Pérdida de empleado, «Indefinido»), Laura (Pausa voluntaria, 24 h) y Mateo (Pérdida diaria, 24 h). También las tres de la carga: CLI-003, CLI-002 y EMP-CLI-003. |
+| F-30 | `admin`, luego `sofia` | 1. «Jugadores» → «Abonos» en la fila de Sofía. 2. Monto del abono `200` → «Registrar abono». 3. En la otra ventana, entrar como `sofia` → «Mi cuenta» y «Notificaciones». | 1: «Deuda actual: 900.00 fichas» y «Límite de dos salarios: 800.00 fichas». 2: «Abono registrado.», deuda 700.00; Sofía sale de las suspensiones activas. 3: Estado Activo y saldo 600.00 (el abono no cambia el saldo). Avisos «Tu cuenta fue suspendida por Pérdida de empleado.» y «Un abono redujo la deuda y tu cuenta fue reactivada.». |
+| F-31 | `admin`, luego `pedro` | 1. «Suspensiones» → «Finalizar investigación» en la fila de Pedro → «Aceptar». 2. En la otra ventana, entrar como `pedro` → «Mi cuenta» y «Notificaciones». | 1: «Investigación finalizada.» 2: Estado Activo, saldo 3000.00 (2000 − 500 + 1500). Aviso «El Administrador finalizó la investigación y tu cuenta fue reactivada.». |
+| F-32 | `admin` | «Jugadores» → «Historial» de `CLI-100`. | Saldo 1050.00 y Estado Suspendido. 3 apuestas resueltas, 250.00 apostado, 300.00 en premios, neto 50.00 (1000 + 50 = 1050). Apuestas: Mano ganadora (P-01), Impar y Rojo (R-02). Suspensión: Pausa voluntaria. |
+| F-33 | `admin` | «Ganancias». | Los valores finales de §15.3. |
+
+### Etapa 9 — Conceptos del supervisor
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-34 | `supervisor1`, luego `admin` | 1. Entrar como `supervisor1` → «Mis conceptos». 2. En el turno más antiguo de P-01 (hace 5 días, Crupier Dos), elegir «Sospecha de fraude» → «Registrar concepto». 3. En la ventana admin, «Notificaciones». | 1: los turnos en curso dicen «Pendiente de finalizar turno»; los tres turnos pasados de P-01 tienen la lista «Seleccione concepto». 2: «Concepto registrado correctamente.» 3: «Se registró una sospecha de fraude en la mesa P-01.» |
+| F-35 | `sofia` y `pedro` (después de la hora F) | Solo si siguen después de F: 1. `sofia` → «Mis conceptos» → la fila de R-02 del turno que terminó → «Genera pérdidas» → «Registrar concepto». 2. `pedro` → «Mi mesa». | 1: «Concepto registrado correctamente.» 2: «R-01 · Ruleta»: en el turno siguiente Pedro atiende la mesa de la rotación (F-06). |
+
+### Etapa 10 — Editar y borrar: el resto de cada CRUD (ventana admin)
+
+| Id | Usuario | Pasos | Resultado esperado |
+|---|---|---|---|
+| F-36 | `admin` | 1. «Mesas» → «Editar» en R-02 → Apuesta máxima `500` → «Guardar mesa». 2. «Registrar mesa»: `B-02`, Blackjack, `20`, `400` → «Guardar mesa». 3. «Borrar» en B-02. | 1: «Mesa actualizada correctamente.» y `R-02 · 10.00 · 500.00`. 2: «Mesa registrada correctamente.» 3: «Mesa borrada correctamente.» |
+| F-37 | `admin` | «Empleados» → «Editar» en Pedro → marcar también Blackjack; dejar «Nueva contraseña (opcional)» vacía → «Guardar empleado». | «Empleado actualizado correctamente.» Competencias «Ruleta, Blackjack». Pedro sigue entrando con su contraseña de siempre. |
+| F-38 | `admin` | 1. «Jugadores» → «Editar» en Mateo → Edad `41` → «Guardar jugador». 2. «Registrar jugador»: `1040000003`, `Jugador Temporal`, `CLI-102`, `30`, `100`, usuario `temporal` → «Guardar jugador». 3. «Borrar» en CLI-102 → «Aceptar». | 1: «Jugador actualizado correctamente.»; el saldo sigue en 950.00, porque el formulario no tiene saldo. 2: «Jugador registrado correctamente.» 3: «Perfil de jugador borrado correctamente.» |
+| F-39 | `admin` | 1. «Turnos» → «Registrar turno»: mañana, 08:00 a 10:00 → «Guardar turno». 2. «Ver asignaciones» → `R-02`, `Pedro Gómez`, `Sofía Herrera` → «Asignar». 3. «Borrar» en esa asignación. 4. «Turnos» → «Editar» en el turno de mañana → Hora de fin `09:30` → «Guardar turno». 5. «Borrar» en ese turno. | 1: «Turno registrado correctamente.» 2: «Asignación registrada correctamente.» 3: «Asignación borrada correctamente.» 4: «Turno actualizado correctamente.» (un turno solo se edita sin asignaciones). 5: «Turno borrado correctamente.» |
+| F-40 | Cualquiera | 1. «Cerrar sesión». 2. Escribir `http://localhost:8010/mi-mesa`. | Vuelve a «Iniciar sesión»: sin sesión no se entra a ninguna página. |
+
+---
+
+## 14. Reparto entre dos personas, hoja de resultados y defectos
+
+### 14.1. Si lo hacen entre dos personas
+
+- **Persona A**: ventana admin y supervisores. Etapas 1, 4, 8, 9 y 10, y los pasos F-11 y F-25.
+- **Persona B**: crupieres y jugadores. Etapas 2, 3, 5, 6 y 7, salvo F-25.
+- **Una sola persona**: hace todo en orden, con las dos ventanas.
+
+| Momento | Persona A | Persona B | Qué se avisan |
+|---|---|---|---|
+| Inicio | §12.2 (carga y hora F); F-01 a F-06 | Abre el túnel y la otra ventana | A → B: «Mesa asignada» y, en privado, las contraseñas de `pedro`, `sofia`, `laura` y `mateo` |
+| +15 min | Espera | F-07 a F-10 | B → A: «Apuestas registradas» |
+| +20 min | F-11 | Espera | A → B: «Saldos revisados» |
+| +25 min | Espera | F-12 a F-15 | B → A: «Ronda cerrada y jugadores revisados» |
+| +35 min | F-16 (en una segunda ventana) y F-17 | Espera | A → B: «Ganancias revisadas» |
+| +40 min | Espera | F-18 a F-24 | B → A: «Suspensiones de jugadores hechas» |
+| +50 min | F-25 | Espera | A → B: «Perfiles de empleados creados» |
+| +55 min | Espera | F-26 y F-27 | B → A: «Empleados suspendidos» |
+| +60 min | F-28 a F-34; F-36 a F-40 | F-30.3 y F-31.2 cuando A avise | A → B: «Abono hecho» / «Investigación finalizada» |
+| Después de F | F-35 (opcional) | — | — |
+
+### 14.2. Hoja de resultados
+
+Columna «Captura»: **Sí** marca los pasos que conviene guardar como evidencia.
+
+| Paso | Resultado esperado (resumen) | Captura | Resultado observado | Estado |
+|---|---|---|---|---|
+| F-01 | Mesa R-02 creada | | | Pendiente |
+| F-02 | Crupier Pedro creado | | | Pendiente |
+| F-03 | Supervisora Sofía creada | | | Pendiente |
+| F-04 | Laura y Mateo registrados, activos | Sí | | Pendiente |
+| F-05 | R-02 asignada a Pedro en el turno en curso | Sí | | Pendiente |
+| F-06 | Turno siguiente con Pedro en R-01 | | | Pendiente |
+| F-07 | Pedro ve R-02 y sus límites | | | Pendiente |
+| F-08 | Ronda 1 abierta | | | Pendiente |
+| F-09 | 5 apuestas pendientes | | | Pendiente |
+| F-10 | Una anulada y otra modificada | | | Pendiente |
+| F-11 | Saldos 850 y 1830 | | | Pendiente |
+| F-12 | Ronda cerrada: premios 100, 300 y 720 | Sí | | Pendiente |
+| F-13 | Ronda 2 abierta y anulada | | | Pendiente |
+| F-14 | Laura: 2 avisos, saldo 950, historial | Sí | | Pendiente |
+| F-15 | Mateo: saldo 2850; avisos marcados | | | Pendiente |
+| F-16 | Sofía ve solo sus mesas; R-02 −800 | | | Pendiente |
+| F-17 | Ganancias del día antes del póker | Sí | | Pendiente |
+| F-18 | Póker sin formulario con la ronda abierta | | | Pendiente |
+| F-19 | Póker: formulario tras el resultado | | | Pendiente |
+| F-20 | Mano ganadora: premio 200 | Sí | | Pendiente |
+| F-21 | Mateo suspendido por pérdida diaria | Sí | | Pendiente |
+| F-22 | Mateo ve su suspensión y el aviso | | | Pendiente |
+| F-23 | Laura en pausa | | | Pendiente |
+| F-24 | La pausa bloquea su apuesta | Sí | | Pendiente |
+| F-25 | Pedro y Sofía con perfil de jugador | | | Pendiente |
+| F-26 | Sofía suspendida por deuda | Sí | | Pendiente |
+| F-27 | Pedro en investigación | Sí | | Pendiente |
+| F-28 | Tres avisos de suspensión al administrador | Sí | | Pendiente |
+| F-29 | Siete suspensiones activas | Sí | | Pendiente |
+| F-30 | Abono: Sofía reactivada y avisada | Sí | | Pendiente |
+| F-31 | Investigación finalizada: Pedro reactivado y avisado | | | Pendiente |
+| F-32 | Historial de Laura coherente con su saldo | Sí | | Pendiente |
+| F-33 | Ganancias finales = §15.3 | Sí | | Pendiente |
+| F-34 | Concepto «Sospecha de fraude» y aviso | | | Pendiente |
+| F-35 | Concepto de Sofía; Pedro en R-01 (tras F) | | | Pendiente |
+| F-36 | Mesa editada; mesa creada y borrada | | | Pendiente |
+| F-37 | Empleado editado sin cambiar su contraseña | | | Pendiente |
+| F-38 | Jugador editado; jugador creado y borrado | | | Pendiente |
+| F-39 | Turno y asignación: crear, borrar, editar | | | Pendiente |
+| F-40 | Sin sesión vuelve al login | | | Pendiente |
+
+Estados: **Aprobado**, **Fallido**, **Pendiente**, **Bloqueado** (por ejemplo, si terminó el turno en curso antes de la etapa 7).
+
+### 14.3. Cómo registrar un defecto
+
+Cuando un paso falle, anótenlo en la hoja como **Fallido** y agreguen una entrada con este formato (por ejemplo, en `docs/defectos.md`):
 
 ```
-Id: DEF-xx            Prueba: B-05            Fecha y hora: 2026-11-0x hh:mm
-Usuario y rol: crupier1 (Crupier)             Navegador:
+Id: DEF-xx            Paso: F-12              Fecha y hora: 2026-11-0x hh:mm
+Usuario y rol: pedro (Crupier)                Navegador:
 Pasos exactos (con los datos usados):
   1. …
 Resultado esperado (con la regla de C o P que lo exige):
 Resultado observado (texto exacto del mensaje):
-Captura: docs/evidencias/sustentacion/B-05-fallo.png
+Captura: docs/evidencias/sustentacion/F-12-fallo.png
 ¿Se repite? (sí/no, cuántas veces):
 Datos afectados (jugador, saldo antes y después):
 ```
 
 Para reproducirlo:
 1. Vuelvan a cargar los datos (§2.5).
-2. Repitan solo los pasos previos que la prueba necesita (§14.2).
-3. Ejecuten la prueba fallida.
+2. Repitan las etapas anteriores al paso fallido.
+3. Ejecuten el paso.
 
 Si el fallo depende de la hora (turnos), anoten la hora de la VM con:
 
@@ -1393,41 +1482,59 @@ ssh estudiante@10.43.98.50 date
 
 | Jugador | Usuario | Saldo | Estado |
 |---|---|---|---|
-| CLI-001 Ana Jugadora | `jugador1` | 1050.00 | Activo (tiene una apuesta pendiente: Rojo 50 × 2 en la ronda 3 de R-01) |
+| CLI-001 Ana Jugadora | `jugador1` | 1050.00 | Activo (tiene una apuesta pendiente: Rojo 50 × 2 en la ronda 3 de R-01). El recorrido no la usa. |
 | CLI-002 Bruno Jugador | `jugador2` | 4800.00 | Suspendido: pausa voluntaria (24 h desde la carga) |
 | CLI-003 Carla Jugadora | `jugador3` | 400.00 | Suspendido: pérdida diaria (perdió 1100 en P-01) |
 | EMP-CLI-003 Crupier Tres | `crupier3` | 4200.00 | Investigación (indefinida) |
-| CLI-B01, CLI-B02 (C-01) | `b_jugador1`, `b_jugador2` | 1500.00 cada uno | Activo |
-| EMP-CLI-A02 Mario Prueba (C-01) | `a_empleado2` | 1000.00 | Activo (salario 100, límite de deuda 200) |
 
-### 15.2. Saldos esperados después de cada prueba
+Los jugadores de §12.3 se crean en la etapa 1 (Laura y Mateo) y en F-25 (Pedro y Sofía).
+
+### 15.2. Saldos esperados
 
 | Jugador | Movimientos | Saldo final | Estado final |
 |---|---|---|---|
-| CLI-001 | 1050 − 20 (B-02) + 100 + 40 (B-05) − 100 + 200 (B-09) | **1270.00** | Suspendido por pausa (B-13) |
-| CLI-B01 | 1500 − 30 − 10 + 10 (anulación) − 10 (de 30 a 40) | **1460.00** | Activo (Negro 40 perdida) |
-| CLI-B02 | 1500 − 1010 | **490.00** | Suspendido por pérdida diaria, 24 h |
-| EMP-CLI-003 | 4200 − 600 + 1800 (C-03) | **5400.00** | Investigación |
-| EMP-CLI-A02 | 1000 − 250 (C-04); el abono no cambia el saldo | **750.00** | Activo (deuda 150 ≤ 200) |
+| CLI-100 Laura | 1000 − 100 − 50 − 10 + 10 (anulada) + 100 (Impar) − 100 + 200 (póker) | **1050.00** | Suspendido: pausa voluntaria, 24 h (F-23) |
+| CLI-101 Mateo | 2000 − 200 − 20 + 50 (de 200 a 150) + 300 + 720 − 1900 | **950.00** | Suspendido: pérdida diaria, 24 h (F-21) |
+| EMP-CLI-100 Pedro | 2000 − 500 + 1500 | **3000.00** | Activo (investigación finalizada en F-31) |
+| EMP-CLI-101 Sofía | 1500 − 900; el abono de 200 no cambia el saldo | **600.00** | Activo (deuda 700, que no supera el límite de 800) |
 
-Historial de CLI-001 tras B-09 (A-17):
-- 7 apuestas resueltas: total apostado 470.00, total en premios 740.00, resultado neto +270.00.
-- Saldo inicial del seeder 1000 + 270 = 1270.
+Saldos intermedios: en F-11, Laura 850.00 y Mateo 1830.00; tras F-12, Laura 950.00 y Mateo 2850.00.
 
 ### 15.3. Ganancias esperadas de hoy (Administrador, Desde = Hasta = hoy)
 
-| Mesa | Apuestas resueltas | Total apostado | Premios pagados | Consolidado casino | Neto casino | Cuándo es válido |
-|---|---|---|---|---|---|---|
-| R-01 | 3 | 110.00 | 140.00 | 40.00 | −30.00 | Desde B-05 |
-| B-01 | 1 | 600.00 | 1800.00 | 0.00 | −1200.00 | Desde C-03 |
-| P-01 | 4 | 2460.00 | 200.00 | 2360.00 | 2260.00 | Desde C-04 (incluye la pérdida sembrada de 1100) |
-| Total | 8 | 3170.00 | 2140.00 | 2400.00 | 1030.00 | Al terminar todo |
+**En F-17 (antes del póker):**
 
-`supervisor2`, con la fecha de hoy, ve dos filas:
-- B-01, con la apuesta de C-03 (600 / 1800 / 0 / −1200);
-- R-01, que supervisó ayer, en ceros.
+| Mesa | Apuestas resueltas | Total apostado | Premios pagados | Consolidado casino | Neto casino |
+|---|---|---|---|---|---|
+| B-01 | 0 | 0.00 | 0.00 | 0.00 | 0.00 |
+| P-01 | 1 | 1100.00 | 0.00 | 1100.00 | 1100.00 |
+| R-01 | 0 | 0.00 | 0.00 | 0.00 | 0.00 |
+| R-02 | 4 | 320.00 | 1120.00 | 100.00 | −800.00 |
+| Total | 5 | 1420.00 | 1120.00 | 1200.00 | 300.00 |
 
-Ve las mesas que supervisó alguna vez, pero solo cuenta las rondas de sus propias asignaciones.
+**En F-33 (al final):**
+
+| Mesa | Apuestas resueltas | Total apostado | Premios pagados | Consolidado casino | Neto casino |
+|---|---|---|---|---|---|
+| B-01 | 0 | 0.00 | 0.00 | 0.00 | 0.00 |
+| P-01 | 5 | 4500.00 | 1700.00 | 3900.00 | 2800.00 |
+| R-01 | 0 | 0.00 | 0.00 | 0.00 | 0.00 |
+| R-02 | 4 | 320.00 | 1120.00 | 100.00 | −800.00 |
+| Total | 9 | 4820.00 | 2820.00 | 4000.00 | 2000.00 |
+
+**Cómo se calcula P-01.**
+- Total apostado: 1100 (carga) + 100 (Laura) + 1900 (Mateo) + 900 (Sofía) + 500 (Pedro) = 4500.
+- Premios: 200 + 1500 = 1700.
+- Consolidado, es decir, las apuestas perdidas: 1100 + 1900 + 900 = 3900.
+- Neto: 4500 − 1700 = 2800.
+
+**R-02.**
+- Total apostado: 100 + 50 + 150 + 20 = 320.
+- Premios: 100 + 300 + 720 = 1120.
+- Consolidado: 100 (el Rojo de Laura).
+- Neto: 320 − 1120 = −800.
+
+**La vista de Sofía (`sofia`).** Solo ve R-01, que supervisa en el turno siguiente y está en ceros, y R-02, con −800. Ve las mesas que supervisó alguna vez, pero solo cuenta las rondas de sus propias asignaciones.
 
 ---
 
@@ -1514,13 +1621,14 @@ Evidencias en texto, en la misma carpeta:
 - [pruebas-php-artisan-test-2026-11-01.txt](evidencias/auditoria/pruebas-php-artisan-test-2026-11-01.txt): salida completa de las 122 pruebas en el momento de la auditoría. La salida tras las correcciones (125 pruebas) está en [docs/evidencias/pruebas-php-artisan-test.txt](evidencias/pruebas-php-artisan-test.txt).
 - [verificacion-correcciones-2026-11-01.txt](evidencias/auditoria/verificacion-correcciones-2026-11-01.txt): verificación en vivo de DEF-01, DEF-02 y DEF-03 corregidos.
 - [route-list-2026-11-01.txt](evidencias/auditoria/route-list-2026-11-01.txt): las 54 rutas.
+- [recorrido-funcional-2026-11-02.txt](evidencias/auditoria/recorrido-funcional-2026-11-02.txt): ejecución completa del recorrido funcional de §13 (F-01 a F-40), con el mensaje y los saldos que devolvió la aplicación en cada paso.
 
 **Capturas mínimas recomendadas para la entrega y la sustentación:**
 
 | Captura | Qué demuestra |
 |---|---|
 | AUD-01, AUD-02, AUD-03 | Login |
-| A-02 (que tomarán ustedes) | Carga útil sin contraseña |
+| La de §5.1, paso 4 (que tomarán ustedes) | Carga útil sin contraseña |
 | AUD-15 | 403 |
 | AUD-20, AUD-33, AUD-37 | Menús por rol |
 | AUD-19 | Alta |
@@ -1568,7 +1676,7 @@ Para tomarlas ustedes mismos: sigan la guía de §11 indicada en cada fila, maxi
 
 | Sin prueba automática | Cómo se cubrió |
 |---|---|
-| `public/js/zk.js`: hash en el navegador, longitud mínima y coincidencia de contraseñas | No tiene pruebas automáticas de JavaScript; se verificó a mano (AUD-17, A-02). |
+| `public/js/zk.js`: hash en el navegador, longitud mínima y coincidencia de contraseñas | No tiene pruebas automáticas de JavaScript; se verificó a mano (AUD-17 y §5.1). |
 | Presentación a ancho de celular | OBS-05. |
 
 DEF-01, DEF-02 y DEF-03 no tenían prueba en la auditoría; por eso pasaron inadvertidos. Ahora cada uno tiene la suya:
@@ -1715,7 +1823,7 @@ Solo usa funcionalidades verificadas en esta auditoría. Duración: unos 25 minu
 
 **Recomendaciones.**
 - Ensayen el recorrido completo una vez el día anterior, con los datos recién cargados.
-- DEF-01, DEF-02 y DEF-03 ya están corregidos. Si cambian algo más en el código antes de la entrega, repitan `php84 artisan test` y las pruebas A-12 y B-09.
+- DEF-01, DEF-02 y DEF-03 ya están corregidos. Si cambian algo más en el código antes de la entrega, repitan `php84 artisan test` y el recorrido funcional de §13.
 - Las preguntas frecuentes del jurado sobre SHA-256 sin sal y sobre las interpretaciones D-04, D-06 y D-24 están respondidas en §5.2 y en OBS-10.
 
 ---

@@ -1,0 +1,186 @@
+Recorrido funcional de la Guía de auditoría (§13, F-01 a F-40) — ejecución del 2026-11-02, 16:04-16:06 (hora de la VM)
+
+Dónde: copia aislada de la aplicación en la VM (mismo código de ~/casino servido en 127.0.0.1:8001,
+base propia ~/casino-funcional/database.sqlite cargada con el seeder y una contraseña temporal),
+accedida por túnel en http://127.0.0.1:8011. La base real (~/casino/database/database.sqlite) no se tocó.
+Cómo: un script envió los mismos formularios que llena el navegador, con la sesión real de cada usuario
+(login Zero Knowledge), y anotó el mensaje de la página siguiente («-> código ruta [tipo] mensaje»).
+Los saldos se leyeron de la base. Turno en curso de esa carga: 16:00-18:00 (F = 18:00).
+Correspondencia: ETAPA 1 = F-01 a F-06; ETAPA 2 = F-07 a F-13 (2.4 incluye F-11); ETAPA 3 = F-14 y F-15;
+ETAPA 4 = F-16 y F-17; ETAPA 5 = F-18 a F-20; ETAPA 6 = F-21 a F-24; ETAPA 7 = F-25 a F-27;
+ETAPA 8 = F-28 a F-33; ETAPA 9 = F-34; ETAPA 10 = F-36 a F-40.
+Al final, la comprobación de F-35 (concepto de una supervisora nueva en un turno ya terminado).
+No incluye contraseñas ni cookies.
+
+Fecha en la VM: 2026-11-02 (mañana 2026-11-03)
+login admin: 302 http://127.0.0.1:8011/inicio
+login crupier3: 302 http://127.0.0.1:8011/inicio
+login supervisor1: 302 http://127.0.0.1:8011/inicio
+
+== ETAPA 1 — El administrador prepara el casino
+ids de juegos: Ruleta=1 Blackjack=2
+1.1 Registrar mesa R-02 Ruleta 10-300
+    -> 302 /mesas [success] Mesa registrada correctamente.
+    fila: R-02 Ruleta 10.00 300.00 Editar Borrar
+1.2 Registrar crupier Pedro Gómez
+    -> 302 /empleados [success] Empleado registrado correctamente.
+    fila: 1030000001 Pedro Gómez Crupier 900.00 Ruleta No Editar Registrar como jugador Borrar
+1.3 Registrar supervisora Sofía Herrera
+    -> 302 /empleados [success] Empleado registrado correctamente.
+    fila: 1030000002 Sofía Herrera Supervisor 400.00 Ruleta No Editar Registrar como jugador Borrar
+1.4 Registrar jugadores Laura y Mateo
+    -> 302 /jugadores [success] Jugador registrado correctamente.
+    -> 302 /jugadores [success] Jugador registrado correctamente.
+    CLI-100 1040000001 Laura Martínez 25 1000.00 No Activo Historial Editar Borrar
+    CLI-101 1040000002 Mateo Ruiz 40 2000.00 No Activo Historial Editar Borrar
+turno en curso: 16:00-18:00; siguiente: 18:00-20:00
+ids: turno en curso=6 R-02=4 Pedro=6 Sofía=7
+    lista de turnos (fila del turno en curso): 2026-11-02 16:00 18:00 Ver asignaciones Editar Borrar
+1.5 Asignar R-02 a Pedro y Sofía en el turno en curso
+    -> 302 /turnos/6 [success] Asignación registrada correctamente.
+    asignaciones: R-01 Ruleta Crupier Uno Supervisora Uno Pendiente Borrar| R-02 Ruleta Pedro Gómez Sofía Herrera Pendiente Borrar|
+1.6 Turno siguiente 18:00-20:00 y Pedro rota a R-01
+    -> 302 /turnos [success] Turno registrado correctamente.
+    turno siguiente id=7
+    -> 302 /turnos/7 [success] Asignación registrada correctamente.
+    asignaciones: R-01 Ruleta Pedro Gómez Sofía Herrera Pendiente Borrar|
+
+== ETAPA 2 — Pedro abre la mesa y registra apuestas
+login pedro: 302 http://127.0.0.1:8011/inicio
+2.1 Inicio: Inicio Sesión iniciada como pedro (Crupier)
+    Mi mesa: Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Abrir ronda
+2.2 Abrir ronda
+    -> 302 /mi-mesa [success] Ronda abierta correctamente.
+    Mi mesa: Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Ronda 1 · Abierta Resultado Tipos ganadores Cerrar ronda Anular ronda Apuestas Aún no hay apu
+2.3 Cinco apuestas en la ronda 10
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+    saldos tras apostar: CLI-100=840.00 (esperado 840) CLI-101=1780.00 (esperado 1780)
+2.4 Anular Pleno 5 y modificar Negro a 150
+    -> 302 /mi-mesa [success] Apuesta anulada correctamente.
+    -> 302 /mi-mesa [success] Apuesta modificada correctamente.
+    Mi mesa: Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Ronda 1 · Abierta Resultado Tipos ganadores Rojo Impar Negro Pleno 17 Cerrar ronda Apuestas CLI-100 · Rojo · 100.00 × 2.00 · Pendiente · Premio 0.00 Modificar Anular CLI-100 · Impar · 50.00 × 2.00 · Pendiente · Premio 0.00 Modificar Anular CLI-101 · Negro · 150.00 × 2.00 · Pendiente · Premio 0.00 Modificar Anular CLI-101 · Pleno 17 · 20.00 × 36.00 · Pendiente · Premio 0.00 Modificar Anular Registrar apuesta Código de cliente Tipo de apuesta Monto Factor de pago Registrar apuesta
+    admin, Jugadores: CLI-100 1040000001 Laura Martínez 25 850.00 No Activo Historial Editar Borrar || CLI-101 1040000002 Mateo Ruiz 40 1830.00 No Activo Historial Editar Borrar
+2.5 Cerrar ronda: 17 Negro, ganan Negro, Impar y Pleno 17
+    -> 302 /mi-mesa [success] Ronda cerrada correctamente.
+    Mi mesa: Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Abrir ronda Ronda 1 · Cerrada Resultado: 17 Negro · Cerrada 02/11/2026 16:05 Apuestas CLI-100 · Rojo · 100.00 × 2.00 · Perdida · Premio 0.00 CLI-100 · Impar · 50.00 × 2.00 · Ganada · Premio 100.00 CLI-101 · Negro · 150.00 × 2.00 · Ganada · Premio 300.00 CLI-101 · Pleno 17 · 20.00 × 36.00 · Ganada · Premio 720.00
+    saldos: CLI-100=950.00 (esperado 950) CLI-101=2850.00 (esperado 2850)
+2.6 Abrir la ronda siguiente y anularla
+    -> 302 /mi-mesa [success] Ronda abierta correctamente.
+    Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Ronda 2 · Abierta Resultado Tipos ganadores Cerrar ron
+    -> 302 /mi-mesa [success] Ronda anulada correctamente.
+
+== ETAPA 3 — Laura y Mateo ven el resultado
+login laura: 302 http://127.0.0.1:8011/inicio
+  Inicio: Inicio Sesión iniciada como laura (Jugador)
+  Notificaciones: Notificaciones Marcar todas como leídas Tu apuesta de la ronda 1 fue resuelta: Perdida. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 1 fue resuelta: Ganada. 02/11/2026 16:05 Marcar como leída
+  Mi cuenta: Mi cuenta Código de cliente: CLI-100 Nombre completo: Laura Martínez Saldo: 950.00 fichas Estado: Activo Solicitar pausa de 24 horas
+  Mi historial: Mi historial Datos del jugador Código CLI-100 Documento 1040000001 Nombre Laura Martínez Edad 25 Saldo 950.00 fichas Estado Activo Es empleado No Totales de apuestas resueltas Apuestas resueltas 2 Total apostado 150.00 Total en premios 100.00 Resultado neto del jugador -50.00 Apuestas Fecha Mesa Juego Ronda Tipo Monto Factor Estado Premio 02/11/2026 16:05 R-02 Ruleta 1 Impar 50.00 2.00 Ganada 100.00 02/11/2026 16:05 R-02 Ruleta 1 Rojo 100.00 2.00 Perdida 0.00 Suspensiones No hay suspensiones registradas.
+login mateo: 302 http://127.0.0.1:8011/inicio
+  Inicio: Inicio Sesión iniciada como mateo (Jugador)
+  Notificaciones: Notificaciones Marcar todas como leídas Tu apuesta de la ronda 1 fue resuelta: Ganada. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 1 fue resuelta: Ganada. 02/11/2026 16:05 Marcar como leída
+  Mi cuenta: Mi cuenta Código de cliente: CLI-101 Nombre completo: Mateo Ruiz Saldo: 2850.00 fichas Estado: Activo Solicitar pausa de 24 horas
+  Mi historial: Mi historial Datos del jugador Código CLI-101 Documento 1040000002 Nombre Mateo Ruiz Edad 40 Saldo 2850.00 fichas Estado Activo Es empleado No Totales de apuestas resueltas Apuestas resueltas 2 Total apostado 170.00 Total en premios 1020.00 Resultado neto del jugador 850.00 Apuestas Fecha Mesa Juego Ronda Tipo Monto Factor Estado Premio 02/11/2026 16:05 R-02 Ruleta 1 Pleno 17 20.00 36.00 Ganada 720.00 02/11/2026 16:05 R-02 Ruleta 1 Negro 150.00 2.00 Ganada 300.00 Suspensiones No hay suspensiones registradas.
+
+== ETAPA 4 — Sofía y el administrador revisan las ganancias
+login sofia: 302 http://127.0.0.1:8011/inicio
+  Inicio: Inicio Sesión iniciada como sofia (Supervisor)
+  Ganancias: Ganancias Desde Hasta Mesa Todas R-01 R-02 Filtrar Mesa Apuestas resueltas Total apostado Premios pagados Consolidado casino Neto casino R-01 0 0.00 0.00 0.00 0.00 R-02 4 320.00 1120.00 100.00 -800.00 Total 4 320.00 1120.00 100.00 -800.00
+  Mis conceptos: Mis conceptos Fecha Turno Mesa Crupier Concepto 2026-11-02 18:00–20:00 R-01 Pedro Gómez Pendiente Pendiente de finalizar turno 2026-11-02 16:00–18:00 R-02 Pedro Gómez Pendiente Pendiente de finalizar turno
+  Admin Ganancias: Ganancias Desde Hasta Mesa Todas B-01 P-01 R-01 R-02 Filtrar Mesa Apuestas resueltas Total apostado Premios pagados Consolidado casino Neto casino B-01 0 0.00 0.00 0.00 0.00 P-01 1 1100.00 0.00 1100.00 1100.00 R-01 0 0.00 0.00 0.00 0.00 R-02 4 320.00 1120.00 100.00 -800.00 Total 5 1420.00 1120.00 1200.00 300.00
+
+== ETAPA 5 — Póker en P-01 (crupier3)
+  Mi mesa antes: Mi mesa P-01 · Póker Apuesta mínima: 50.00 · Máxima: 2000.00 Abrir ronda Ronda 4 · Cerrada Resultado: Mesa terminada · Cerrada 02/11/2026 16:04 Registrar apuesta con resultado conocido Código
+    -> 302 /mi-mesa [success] Ronda abierta correctamente.
+  Mi mesa con ronda abierta: Mi mesa P-01 · Póker Apuesta mínima: 50.00 · Máxima: 2000.00 Ronda 5 · Abierta Resultado Cerrar ronda Anular ronda Apuestas Aún no hay apuestas. Ronda 4 · Cerrada Resultado: Mesa terminada · Cerrada 02/11/2026 16:04 Registrar apuesta con resultado conocido Código de cliente Tipo de apuesta
+  ¿hay formulario de apuesta con la ronda abierta? 0
+    -> 302 /mi-mesa [success] Ronda cerrada correctamente.
+  ¿formulario de apuesta tras cerrar? 1
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+  CLI-100 saldo=1050.00 (esperado 1050)
+
+== ETAPA 6 — Suspensiones: pérdida diaria y pausa voluntaria
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+  CLI-101 saldo=950.00 (esperado 950)
+  segunda apuesta de Mateo:
+    -> 302 /mi-mesa [error] El jugador está suspendido: Pérdida diaria hasta 03/11/2026 16:05.
+  mateo Mi cuenta: Mi cuenta Código de cliente: CLI-101 Nombre completo: Mateo Ruiz Saldo: 950.00 fichas Estado: Suspendido El jugador está suspendido: Pérdida diaria hasta 03/11/2026 16:05.
+  mateo Notificaciones: Notificaciones Marcar todas como leídas Tu cuenta fue suspendida por Pérdida diaria hasta 03/11/2026 16:05. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 5 fue resuelta: Perdida. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 1 fue resuelta: Ganada. 02/11/2026 16:05 Marcar
+  laura pide pausa:
+    -> 302 /mi-cuenta [success] Tu pausa de 24 horas comenzó.
+  laura Mi cuenta: Mi cuenta Código de cliente: CLI-100 Nombre completo: Laura Martínez Saldo: 1050.00 fichas Estado: Suspendido El jugador está suspendido: Pausa voluntaria hasta 03/11/2026 16:05.
+    -> 302 /mi-mesa [success] Ronda abierta correctamente.
+  Pedro abre la ronda 13: Mi mesa R-02 · Ruleta Apuesta mínima: 10.00 · Máxima: 300.00 Ronda 2 · Abierta Result
+  apuesta de Laura en pausa:
+    -> 302 /mi-mesa [error] El jugador está suspendido: Pausa voluntaria hasta 03/11/2026 16:05.
+    -> 302 /mi-mesa [success] Ronda anulada correctamente.
+
+== ETAPA 7 — Empleados que también juegan
+    -> 302 /jugadores [success] Jugador registrado correctamente.
+    -> 302 /jugadores [success] Jugador registrado correctamente.
+    EMP-CLI-100 1030000001 Pedro Gómez 30 2000.00 Sí Activo Historial Editar Abonos Borrar
+    EMP-CLI-101 1030000002 Sofía Herrera 35 1500.00 Sí Activo Historial Editar Abonos Borrar
+  Sofía pierde 900 (límite 2 x 400 = 800):
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+  otra apuesta de Sofía:
+    -> 302 /mi-mesa [error] El jugador está suspendido: Pérdida de empleado.
+  Pedro gana 500 x 3 (salario 900):
+    -> 302 /mi-mesa [success] Apuesta registrada correctamente.
+  otra apuesta de Pedro:
+    -> 302 /mi-mesa [error] El jugador está suspendido: Investigación.
+  Mi mesa P-01: Mi mesa P-01 · Póker Apuesta mínima: 50.00 · Máxima: 2000.00 Abrir ronda Ronda 5 · Cerrada Resultado: Escalera de color · Cerrada 02/11/2026 16:05 Registrar apuesta con resultado conocido Código de cliente Tipo de apuesta Monto Factor de pago Estado Ganada Perdida Registrar apuesta Apuestas CLI-100 · Mano ganadora · 100.00 × 2.00 · Ganada · Premio 200.00 CLI-101 · Mano perdida · 1900.00 × 1.00 · Perdida · Premio 0.00 EMP-CLI-101 · Mano perdida · 900.00 × 1.00 · Perdida · Premio 0.00 EMP-CLI-100 · Mano ganadora · 500.00 × 3.00 · Ganada · Premio 1500.00 Ronda 4 · Cerrada Resultado: Mesa terminada · Cerrada 02/11/2026 16:04 Registrar apuesta con resultado conocido Código de cliente Tipo de apuesta Monto Factor de pago Estado Ganada Perdida Registrar apuesta Apuestas CLI-003 · Mano perdida · 1100.00 × 1.00 · Perdida · Premio 0.00
+
+== ETAPA 8 — El administrador atiende las suspensiones
+  Inicio admin: Inicio Sesión iniciada como admin (Administrador)
+  Notificaciones admin: Notificaciones Marcar todas como leídas La cuenta de Pedro Gómez fue suspendida por Investigación. 02/11/2026 16:05 Marcar como leída La cuenta de Sofía Herrera fue suspendida por Pérdida de empleado. 02/11/2026 16:05 Marcar como leída La cuenta de Mateo Ruiz fue suspendida por Pérdida diaria hasta 03/11/2026 16:05. 02/11/2026 16:05 Marcar como leída La cuenta de Carla Jugadora fue suspendida por Pérdida diaria hasta 03/11/2026 16:04. 02/11/2026 16:04 Marcar como leída Se registró una sospecha de fraude en la mesa R-01. 01/11/2026 12:01 Marcar como leída La cuenta de Crupier Tres fue suspendida por Investigación. 01/11/2026 10:07 Marcar como leída La cuenta de Crupier Tres fue suspendida por Pérdida de empleado. 30/10/2026 10:06 Marcar como leída
+  Suspensiones: Suspensiones activas Jugador Motivo Inicio Fin Acción EMP-CLI-100 · Pedro Gómez Investigación 02/11/2026 16:05 Indefinido Finalizar investigación EMP-CLI-101 · Sofía Herrera Pérdida de empleado 02/11/2026 16:05 Indefinido — CLI-100 · Laura Martínez Pausa voluntaria 02/11/2026 16:05 03/11/2026 16:05 — CLI-101 · Mateo Ruiz Pérdida diaria 02/11/2026 16:05 03/11/2026 16:05 — CLI-003 · Carla Jugadora Pérdida diaria 02/11/2026 16:04 03/11/2026 16:04 — CLI-002 · Bruno Jugador Pausa voluntaria 02/11/2026 16:04 03/11/2026 16:04 — EMP-CLI-003 · Crupier Tres Investigación 01/11/2026 10:07 Indefinido Finalizar investigación Historial Jugador Motivo Inicio Fin Acción EMP-CLI-003 · Crupier Tres Pérdida de empleado 30/10/2026 10:06 30/10/2026 12:01 —
+  Abonos Sofía: Abonos de Sofía Herrera Deuda actual: 900.00 fichas Límite de dos salarios: 800.00 fichas Monto del abono Registrar abono Abonos anteriores No hay abonos registrados.
+    -> 302 /jugadores/8/abonos [success] Abono registrado.
+  Abonos Sofía después: Abonos de Sofía Herrera Deuda actual: 700.00 fichas Límite de dos salarios: 800.00 fichas Monto del abono Registrar abono Abonos anteriores Fecha Monto 02/11/2026 16:05 200.00
+login sofia (otra vez para su cuenta): 302 http://127.0.0.1:8011/inicio
+  sofia Mi cuenta: Mi cuenta Código de cliente: EMP-CLI-101 Nombre completo: Sofía Herrera Saldo: 600.00 fichas Estado: Activo Solicitar pausa de 24 horas
+  sofia Notificaciones: Notificaciones Marcar todas como leídas Un abono redujo la deuda y tu cuenta fue reactivada. 02/11/2026 16:05 Marcar como leída Tu cuenta fue suspendida por Pérdida de empleado. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 5 fue resuelta: Perdida. 02/11/2026 16:05 Marcar como leída
+  suspensión de investigación de Pedro id=8
+    -> 302 /suspensiones [success] Investigación finalizada.
+  pedro Mi cuenta: Mi cuenta Código de cliente: EMP-CLI-100 Nombre completo: Pedro Gómez Saldo: 3000.00 fichas Estado: Activo Solicitar pausa de 24 horas
+  pedro Notificaciones: Notificaciones Marcar todas como leídas El Administrador finalizó la investigación y tu cuenta fue reactivada. 02/11/2026 16:05 Marcar como leída Tu cuenta fue suspendida por Investigación. 02/11/2026 16:05 Marcar como leída Tu apuesta de la ronda 5 fue resuelta: Ganada. 02/11/2026 16:05 Marcar como leída
+  Historial de Laura: Historial del jugador Datos del jugador Código CLI-100 Documento 1040000001 Nombre Laura Martínez Edad 25 Saldo 1050.00 fichas Estado Suspendido Es empleado No Totales de apuestas resueltas Apuestas resueltas 3 Total apostado 250.00 Total en premios 300.00 Resultado neto del jugador 50.00 Apuestas Fecha Mesa Juego Ronda Tipo Monto Factor Estado Premio 02/11/2026 16:05 P-01 Póker 5 Mano ganadora 100.00 2.00 Ganada 200.00 02/11/2026 16:05 R-02 Ruleta 1 Impar 50.00 2.00 Ganada 100.00 02/11/2026 16:05 R-02 Ruleta 1 Rojo 100.00 2.00 Perdida 0.00 Suspensiones Pausa voluntaria · inicio 02/11/2026 16:05 · fin 03/11/2026 16:05
+  Ganancias de hoy: Ganancias Desde Hasta Mesa Todas B-01 P-01 R-01 R-02 Filtrar Mesa Apuestas resueltas Total apostado Premios pagados Consolidado casino Neto casino B-01 0 0.00 0.00 0.00 0.00 P-01 5 4500.00 1700.00 3900.00 2800.00 R-01 0 0.00 0.00 0.00 0.00 R-02 4 320.00 1120.00 100.00 -800.00 Total 9 4820.00 2820.00 4000.00 2000.00
+
+== ETAPA 9 — Concepto del supervisor
+  Mis conceptos supervisor1: Mis conceptos Fecha Turno Mesa Crupier Concepto 2026-11-02 16:00–18:00 R-01 Crupier Uno Pendiente Pendiente de finalizar turno 2026-11-02 16:00–18:00 P-01 Crupier Tres Pendiente Pendiente de finalizar turno 2026-11-01 12:00–14:00 B-01 Crupier Uno Comportamiento neutro 2026-11-01 12:00–14:00 P-01 Crupier Dos Comportamiento neutro 2026-11-01 10:00–12:00 R-01 Crupier Uno Sospecha de fraude 2026-11-01 10:00–12:00 P-01 Crupier Tres Comportamiento neutro 2026-10-30 10:00–12:00 P-01 Crupier Dos Pendiente Seleccione concepto Genera ganancias Genera pérdidas Sospecha de fraude Comportamiento neutro Registrar concepto 2026-10-29 10:00–12:00 P-01 Crupier Dos Pendiente Seleccione concepto Genera ganancias Genera pérdidas Sospecha de fraude Comportamiento neutro Registrar concepto 2026-10-28 10:00–12:00 P-01 Crupier Dos Pendiente Seleccione concepto Genera ganancias Genera pérdid
+  asignación más antigua sin concepto id=1
+    -> 302 /mis-conceptos [success] Concepto registrado correctamente.
+  Notificaciones admin (primeras): Notificaciones Marcar todas como leídas Se registró una sospecha de fraude en la mesa P-01. 02/11/2026 16:05 Marcar como leída La cuenta de Pedro Gómez fue suspendida por Investigación. 02/11/2026 16:05 Marcar como leída La cuenta de Sofía Herrera fue suspendida por Pérdida de empleado. 02/1
+
+== ETAPA 10 — Mantenimiento: editar y borrar
+    -> 302 /mesas [success] Mesa actualizada correctamente.
+    R-02 Ruleta 10.00 500.00 Editar Borrar
+    -> 302 /mesas [success] Mesa registrada correctamente.
+    -> 302 /mesas [success] Mesa borrada correctamente.
+    -> 302 /empleados [success] Empleado actualizado correctamente.
+    1030000001 Pedro Gómez Crupier 900.00 Ruleta, Blackjack Sí Editar Borrar
+    login pedro con la misma contraseña: 302 http://127.0.0.1:8011/inicio
+    -> 302 /jugadores [success] Jugador actualizado correctamente.
+    CLI-101 1040000002 Mateo Ruiz 41 950.00 No Suspendido Historial Editar Borrar
+EMP-CLI-101 1030000002 Sofía Herrera 35 600.00 Sí Activo Historial Editar Abonos Borrar
+    -> 302 /jugadores [success] Jugador registrado correctamente.
+    -> 302 /jugadores [success] Perfil de jugador borrado correctamente.
+    -> 302 /turnos [success] Turno registrado correctamente.
+    -> 302 /turnos/8 [success] Asignación registrada correctamente.
+    -> 302 /turnos/8 [success] Asignación borrada correctamente.
+    -> 302 /turnos/8 [success] Turno actualizado correctamente.
+    -> 302 /turnos [success] Turno borrado correctamente.
+  logout pedro:
+    -> 302 /login
+    /mi-mesa tras salir: 302 http://127.0.0.1:8011/login
+
+== F-35 — concepto de Sofía en un turno ya terminado (turno de hoy 08:00-10:00, R-02, Crupier Uno)
+    -> 302 /turnos [success] Turno registrado correctamente.
+    -> 302 /turnos/9 [success] Asignación registrada correctamente.
+Mis conceptos sofia: Mis conceptos Fecha Turno Mesa Crupier Concepto 2026-11-02 18:00–20:00 R-01 Pedro Gómez Pendiente Pendiente de finalizar turno 2026-11-02 16:00–18:00 R-02 Pedro Gómez Pendiente Pendiente de finalizar turno 2026-11-02 08:00–10:00 R-02 Crupier Uno Pendiente Seleccione concepto Genera ganancias Genera pérdidas Sospecha de fraude Comportamiento neutro Registrar concepto
+    -> 302 /mis-conceptos [success] Concepto registrado correctamente.
+después: 2026-11-02 08:00–10:00 R-02 Crupier Uno Genera pérdidas
