@@ -1779,7 +1779,7 @@ Los tres defectos se encontraron en la auditoría (commit `1102802`) y se corrig
 
 ## 19. Guía para preparar la demostración de la sustentación
 
-Solo usa funcionalidades verificadas en esta auditoría. Duración: unos 25 minutos de los 45 de la exposición. Roles sugeridos:
+Solo usa funcionalidades verificadas en esta auditoría. El reparto de las funcionalidades entre los tres integrantes, con su guion paso a paso y las preguntas probables, está en [GUIA_FUNCIONAL_SUSTENTACION.md](GUIA_FUNCIONAL_SUSTENTACION.md). Duración: unos 25 minutos de los 45 de la exposición. Roles sugeridos:
 - **Integrante 1** opera el navegador del administrador y del supervisor;
 - **Integrante 2** opera el navegador del crupier y del jugador;
 - **Integrante 3** explica el código y la terminal.
