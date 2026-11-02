@@ -141,7 +141,7 @@ Todas las reglas del contexto (RN-01 a RN-18) están implementadas y probadas. L
 
 ### Pruebas
 
-La suite de PHPUnit tiene 122 pruebas (647 aserciones) y cubre cada requisito con al menos una prueba cuyo nombre lo identifica. Incluye una prueba de humo que carga todas las páginas de cada rol y comprueba que las de otros roles responden 403. Se ejecuta en la máquina virtual con `php84 artisan test`. La salida completa está en [evidencias/pruebas-php-artisan-test.txt](evidencias/pruebas-php-artisan-test.txt).
+La suite de PHPUnit tiene 125 pruebas (661 aserciones) y cubre cada requisito con al menos una prueba cuyo nombre lo identifica. Incluye una prueba de humo que carga todas las páginas de cada rol y comprueba que las de otros roles responden 403. Se ejecuta en la máquina virtual con `php84 artisan test`. La salida completa está en [evidencias/pruebas-php-artisan-test.txt](evidencias/pruebas-php-artisan-test.txt).
 
 ### Datos de demostración
 

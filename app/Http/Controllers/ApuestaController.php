@@ -57,5 +57,7 @@ class ApuestaController extends Controller
         abort_unless($empleado, 403);
         $asignacion = Asignacion::enCursoDelCrupier($empleado, $ronda->mesa);
         abort_unless($asignacion, 403);
+        // D-14: una ronda abierta puede venir del turno anterior; una cerrada (póker) debe ser de este turno.
+        abort_unless($ronda->hora_cierre === null || (int) $ronda->asignacion_id === (int) $asignacion->id, 403);
     }
 }

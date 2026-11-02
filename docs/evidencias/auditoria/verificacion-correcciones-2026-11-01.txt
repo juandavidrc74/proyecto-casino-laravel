@@ -1,0 +1,28 @@
+Verificación en vivo de las correcciones DEF-01, DEF-02 y DEF-03 — 2026-11-01
+Copia aislada en la VM (base ~/casino-auditoria cargada con el seeder y una contraseña temporal), túnel a http://127.0.0.1:8011; solicitudes con curl y la sesión de cada usuario.
+
+login admin: 302 http://127.0.0.1:8011/inicio
+login crupier1: 302 http://127.0.0.1:8011/inicio
+login crupier3: 302 http://127.0.0.1:8011/inicio
+
+== DEF-01 (póker en ronda de un turno anterior)
+crupier3 → POST /rondas/1/apuestas (P-01, hace 5 días, turno de crupier2): 403 
+  apuestas en la ronda 1 después: 1
+Flujo normal de póker en el turno en curso:
+  abrir ronda en P-01: 302 http://127.0.0.1:8011/mi-mesa
+  cerrar la ronda 10: 302 http://127.0.0.1:8011/mi-mesa
+  registrar CLI-001 100 x 2 Ganada en la ronda 10: 302 http://127.0.0.1:8011/mi-mesa
+  mensaje:  Apuesta registrada correctamente. Mi mesa P-01 · Póker Ap
+Ruleta (ronda abierta sembrada en R-01) sigue funcionando:
+  registrar CLI-001 Rojo 20 x 2 en la ronda 8: 302 http://127.0.0.1:8011/mi-mesa
+  mensaje:  Apuesta registrada correctamente. Mi mesa R-01 · Ruleta Ap
+
+== DEF-02 (turno contiguo al sembrado de 09:00–11:00)
+admin → turno 2026-11-01 11:00–13:00: 302 http://127.0.0.1:8011/turnos
+  mensaje:  Turno registrado correctamente. Turnos Registrar turno Fecha Inicio Fin Acciones 2026-11-01 09:00 11:00 Ver asignacione
+admin → turno 2026-11-01 10:59–11:30 (se solapa): 302 http://127.0.0.1:8011/notificaciones
+  mensaje:  El turno se solapa con otro turno de la misma fecha. Notificaciones Marcar
+
+== DEF-03 (páginas de error en español)
+admin → GET /mesas/99/edit: 404 — 404 La página que buscas no existe. 
+POST /logout sin token: 419 — 419 La sesión expiró. Vuelve a cargar la página e inténtalo de nuevo. 

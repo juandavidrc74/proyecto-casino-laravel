@@ -41,11 +41,12 @@ class TurnoRequest extends FormRequest
             if ($turno && $turno->asignaciones()->exists()) {
                 $validator->errors()->add('fecha', 'No se puede editar un turno que tiene asignaciones.');
             }
-            $solape = Turno::where('fecha', $this->input('fecha'))->where('hora_inicio', '<', $this->input('hora_fin'))->where('hora_fin', '>', $this->input('hora_inicio'));
-            if ($turno) {
-                $solape->where('id', '<>', $turno->id);
-            }
-            if ($solape->exists()) {
+            // Se compara en PHP: el seeder guarda las horas con segundos y el formulario sin ellos (D-10).
+            $solape = Turno::where('fecha', $this->input('fecha'))
+                ->when($turno, fn ($query) => $query->whereKeyNot($turno->id))
+                ->get()
+                ->contains(fn (Turno $otro) => $otro->inicio()->getTimestamp() < $fin && $otro->fin()->getTimestamp() > $inicio);
+            if ($solape) {
                 $validator->errors()->add('hora_inicio', 'El turno se solapa con otro turno de la misma fecha.');
             }
         });

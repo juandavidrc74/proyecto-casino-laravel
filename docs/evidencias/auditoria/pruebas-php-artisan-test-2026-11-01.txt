@@ -1,0 +1,168 @@
+225280 2026-11-01_08:20:46 database/database.sqlite
+inicio 2026-11-01 08:30:10 -0500
+
+   PASS  Tests\Feature\AbonosTest
+  ✓ rn 17 empleado con deuda mayor a dos salarios queda suspendido       0.29s  
+  ✓ rn 17 abono que baja la deuda reactiva automaticamente               0.03s  
+  ✓ rn 17 abono que no baja del limite mantiene la suspension            0.03s  
+  ✓ d07 abono mayor que la deuda o a no empleado se rechaza              0.03s  
+  ✓ d07 admin consulta deuda y registra abono                            0.07s  
+  ✓ d07 abono se rechaza para jugador no empleado                        0.02s  
+  ✓ rn 18 empleado con ganancia mayor a un salario queda en investigaci… 0.03s  
+  ✓ rn 18 en investigacion no apuesta                                    0.02s  
+  ✓ d08 admin finaliza investigacion y vuelve a apostar                  0.02s  
+  ✓ d06 tras finalizar la investigacion la ganancia se cuenta de nuevo   0.04s  
+  ✓ rn 17 y rn 18 no aplican a jugadores que no son empleados            0.03s  
+  ✓ rf rol 02 solo el administrador ve suspensiones y registra abonos    0.03s  
+
+   PASS  Tests\Feature\ApuestasTest
+  ✓ rn 10 apuesta guarda jugador ronda tipo monto y factor               0.05s  
+  ✓ rn 11 monto igual al minimo y al maximo se acepta                    0.04s  
+  ✓ rn 11 monto menor al minimo o mayor al maximo se rechaza             0.03s  
+  ✓ cu 03 apuesta rechazada conserva lo escrito en el formulario         0.04s  
+  ✓ rn 11 saldo insuficiente se rechaza                                  0.03s  
+  ✓ d03 registrar descuenta modificar ajusta y anular devuelve el saldo  0.05s  
+  ✓ fa 03 no se borra jugador con apuestas                               0.03s  
+  ✓ rf rol 02 jugador y supervisor no operan rondas ni apuestas          0.03s  
+
+   PASS  Tests\Feature\AsignacionesTest
+  ✓ rn 04 una mesa no tiene dos asignaciones en el turno                 0.04s  
+  ✓ rn 04 un crupier no tiene dos mesas en el turno                      0.03s  
+  ✓ rn 05 crupier no repite mesa en la misma jornada                     0.03s  
+  ✓ rn 05 crupier puede repetir mesa otro dia                            0.03s  
+  ✓ rn 08 rechaza crupier o supervisor sin competencia en el juego       0.02s  
+  ✓ rn 04 rechaza empleados con rol equivocado                           0.03s  
+  ✓ fa 02 no se borra empleado con asignaciones                          0.03s  
+  ✓ rf rol 02 solo el administrador gestiona mesas turnos y asignacione… 0.04s  
+
+   PASS  Tests\Feature\AutenticacionTest
+  ✓ rf aut 01 formulario de login entrega nonce y no envia la contrasen… 0.03s  
+  ✓ rf aut 04 login correcto con la respuesta al desafio                 0.02s  
+  ✓ rf aut 04 rechaza nonce reutilizado                                  0.02s  
+  ✓ rf aut 04 rechaza contrasena en claro y hash sin nonce               0.02s  
+  ✓ rf aut 04 falla sin nonce en sesion                                  0.01s  
+  ✓ rf aut 01 rechaza usuario inexistente y respuesta incorrecta         0.02s  
+  ✓ rf aut 02 rutas protegidas exigen sesion                             0.01s  
+  ✓ rf aut 02 login regenera el id de sesion                             0.02s  
+  ✓ rf aut 02 logout cierra la sesion                                    0.01s  
+  ✓ rf aut 03 la base guarda exactamente sha256 hex                      0.01s  
+
+   PASS  Tests\Feature\ConceptoTest
+  ✓ rn 07 supervisor asignado registra concepto al terminar el turno     0.04s  
+  ✓ d11 rechaza concepto antes del fin del turno                         0.02s  
+  ✓ d11 rechaza segundo concepto                                         0.02s  
+  ✓ rn 07 rechaza valor no permitido                                     0.02s  
+  ✓ d11 otro supervisor recibe 403                                       0.02s  
+  ✓ rf rol 02 solo supervisores ven mis conceptos                        0.02s  
+
+   PASS  Tests\Feature\DemoSeederTest
+  ✓ en 03 sin contrasena demo no crea nada                               0.02s  
+  ✓ en 03 crea cuentas mesas y turno en curso with data set #0           0.24s  
+  ✓ en 03 crea cuentas mesas y turno en curso with data set #1           0.23s  
+  ✓ en 03 crea cuentas mesas y turno en curso with data set #2           0.25s  
+  ✓ en 03 los datos cumplen las reglas                                   0.25s  
+  ✓ en 03 un crupier opera su mesa en curso tras el seed                 0.24s  
+
+   PASS  Tests\Feature\EmpleadosTest
+  ✓ d05 la migracion crea ruleta blackjack y poker con su registro deta… 0.02s  
+  ✓ fa 02 admin crea empleado con cuenta y competencias                  0.02s  
+  ✓ fa 02 valida documento y username unicos salario positivo y rol de…  0.03s  
+  ✓ fa 02 rechaza contrasena que no es sha256 hex                        0.02s  
+  ✓ fa 02 editar sin contrasena conserva la anterior y actualiza compet… 0.03s  
+  ✓ d13 editar empleado actualiza su perfil de jugador                   0.03s  
+  ✓ fa 02 borrar empleado borra su cuenta y competencias                 0.02s  
+  ✓ fa 02 no se borra a si mismo                                         0.02s  
+  ✓ fa 02 no se borra empleado con perfil de jugador                     0.02s  
+  ✓ rf rol 02 solo el administrador gestiona empleados y jugadores       0.11s  
+  ✓ fa 00 el menu del administrador muestra empleados y jugadores y otr… 0.03s  
+
+   PASS  Tests\Feature\GananciasTest
+  ✓ cu 04 ganancias calcula totales por mesa y filtra por fecha          0.06s  
+  ✓ cu 04 supervisor solo ve sus mesas                                   0.03s  
+  ✓ cu 04 supervisor no ve rondas de turnos que no superviso             0.04s  
+
+   PASS  Tests\Feature\HistorialTest
+  ✓ fa 03 admin ve el historial completo de un jugador                   0.05s  
+  ✓ fa 03 jugador ve solo su historial                                   0.02s  
+  ✓ fa 03 jugador no accede a jugadores show                             0.02s  
+  ✓ fa 03 empleado con perfil ve su historial                            0.02s  
+  ✓ fa 03 cuenta sin perfil recibe 403                                   0.01s  
+
+   PASS  Tests\Feature\JugadoresTest
+  ✓ rn 01 admin registra jugador con todos los datos                     0.02s  
+  ✓ rn 01 codigo y documento son unicos                                  0.02s  
+  ✓ rn 01 campos obligatorios                                            0.02s  
+  ✓ rn 02 rechaza menor de 18 y acepta 18                                0.02s  
+  ✓ d12 editar jugador no cambia el saldo                                0.02s  
+  ✓ rn 16 empleado puede tener perfil de jugador con su misma cuenta     0.02s  
+  ✓ rn 16 un usuario no tiene dos perfiles de jugador                    0.02s  
+  ✓ rn 16 documento de empleado ya usado por otro jugador da error de v… 0.02s  
+
+   PASS  Tests\Feature\MesasTest
+  ✓ cu 01 admin crea edita y borra mesa                                  0.04s  
+  ✓ rn 03 codigo unico y minimo no mayor que maximo                      0.03s  
+  ✓ cu 01 no borra ni cambia juego de mesa con asignaciones              0.02s  
+
+   PASS  Tests\Feature\NotificacionesTest
+  ✓ fa 01 resolver apuesta notifica al jugador                           0.03s  
+  ✓ fa 01 suspension automatica notifica al jugador y a los administrad… 0.03s  
+  ✓ fa 01 pausa voluntaria no notifica                                   0.02s  
+  ✓ fa 01 abono que reactiva notifica al jugador                         0.03s  
+  ✓ fa 01 finalizar investigacion notifica al jugador                    0.02s  
+  ✓ fa 01 concepto sospecha de fraude notifica a los administradores     0.03s  
+  ✓ fa 01 otro concepto no notifica                                      0.03s  
+  ✓ fa 01 marcar como leida y todas                                      0.02s  
+  ✓ fa 01 no marca notificaciones ajenas                                 0.02s  
+  ✓ fa 01 la cabecera muestra el numero de no leidas                     0.02s  
+
+   PASS  Tests\Feature\PaginasTest
+  ✓ fa 00 paginas de cada rol cargan y las de otros roles se bloquean    0.27s  
+  ✓ fa 00 paginas f6 y f7 responden segun el perfil y el rol             0.08s  
+
+   PASS  Tests\Feature\PausaTest
+  ✓ rn 15 pausa voluntaria suspende 24 horas                             0.03s  
+  ✓ rn 15 no pide pausa con suspension activa                            0.02s  
+  ✓ rn 15 solo sobre su propio perfil                                    0.02s  
+  ✓ mi cuenta muestra perfil de jugador vinculado a empleado             0.02s  
+
+   PASS  Tests\Feature\ResultadoTest
+  ✓ rn 12 cierre procesa ganadas y perdidas con premio y saldo           0.05s  
+  ✓ rn 12 ronda cerrada no se vuelve a procesar                          0.04s  
+  ✓ rn 13 poker rechaza apuesta con ronda abierta y acepta tras el resu… 0.06s  
+  ✓ rn 13 apuesta de poker se procesa al registrarla                     0.04s  
+
+   PASS  Tests\Feature\RolesTest
+  ✓ rf rol 02 middleware rechaza otro rol con 403 y permite el rol corr… 0.02s  
+  ✓ rf rol 01 inicio muestra el rol del usuario                          0.03s  
+  ✓ seeder sin contrasena demo no crea usuarios                          0.01s  
+  ✓ seeder con contrasena demo crea un usuario por rol                   0.23s  
+
+   PASS  Tests\Feature\RondasTest
+  ✓ rn 09 numeracion correlativa por mesa                                0.07s  
+  ✓ d15 no abre segunda ronda abierta                                    0.03s  
+  ✓ cu 02 anula ronda abierta sin apuestas y no con apuestas             0.03s  
+  ✓ d14 crupier sin asignacion en curso recibe 403                       0.02s  
+  ✓ d14 crupier de otra mesa recibe 403                                  0.05s  
+  ✓ d14 fuera del turno no opera                                         0.02s  
+  ✓ rn 09 no se borra asignacion con rondas                              0.02s  
+
+   PASS  Tests\Feature\SuspensionesTest
+  ✓ rn 14 perdida diaria mayor al umbral suspende 24 horas               0.04s  
+  ✓ rn 14 igual al umbral no suspende                                    0.02s  
+  ✓ rn 14 suspendido no apuesta en ninguna mesa                          0.03s  
+  ✓ rn 14 tras 24 horas vuelve a apostar                                 0.03s  
+  ✓ d06 la perdida diaria es neta y por dia calendario                   0.03s  
+  ✓ rn 16 empleado con perfil apuesta como cliente                       0.03s  
+
+   PASS  Tests\Feature\TurnosTest
+  ✓ rn 06 turno de 2 horas se acepta y de 2 horas 1 minuto se rechaza    0.02s  
+  ✓ d10 turno no cruza medianoche                                        0.02s  
+  ✓ d10 turnos del mismo dia no se solapan pero pueden ser contiguos     0.02s  
+  ✓ d10 al editar el propio turno no cuenta como solape                  0.02s  
+  ✓ rn 06 turno con asignaciones no se edita ni borra                    0.03s  
+
+  Tests:    122 passed (647 assertions)
+  Duration: 5.55s
+
+fin 2026-11-01 08:30:16 -0500
+225280 2026-11-01_08:20:46 database/database.sqlite

@@ -1,0 +1,98 @@
+Resultados de las pruebas contra el servidor — auditoría del 2026-11-01
+Entorno: copia aislada de la aplicación en la VM (php84 -S 127.0.0.1:8001, base ~/casino-auditoria/database.sqlite
+cargada con el seeder y una contraseña de prueba temporal), túnel SSH a http://127.0.0.1:8011. La base real (~/casino) no se tocó.
+Cada solicitud se hizo con curl y la sesión real de cada usuario, sin navegador, para comprobar el servidor y no solo la interfaz.
+Códigos: 200 = permitido; 403 = denegado por el servidor; 302→login = sin sesión; 302→/ruta = permitido pero rechazado por validación o regla.
+
+== 1. Inicio de sesión
+admin con clave correcta: 302 http://127.0.0.1:8011/inicio
+admin con clave incorrecta: 302 http://127.0.0.1:8011/login
+usuario inexistente: 302 http://127.0.0.1:8011/login
+
+== 2. Matriz de lectura (GET) por usuario
+admin login: 302 http://127.0.0.1:8011/inicio
+crupier1 login: 302 http://127.0.0.1:8011/inicio
+crupier2 login: 302 http://127.0.0.1:8011/inicio
+crupier3 login: 302 http://127.0.0.1:8011/inicio
+supervisor1 login: 302 http://127.0.0.1:8011/inicio
+supervisor2 login: 302 http://127.0.0.1:8011/inicio
+jugador1 login: 302 http://127.0.0.1:8011/inicio
+jugador2 login: 302 http://127.0.0.1:8011/inicio
+
+GET                 anonimo      admin        crupier1     crupier2     crupier3     supervisor1  supervisor2  jugador1     jugador2     
+/inicio             302→login 200          200          200          200          200          200          200          200          
+/empleados          302→login 200          403          403          403          403          403          403          403          
+/empleados/create   302→login 200          403          403          403          403          403          403          403          
+/empleados/1/edit   302→login 200          403          403          403          403          403          403          403          
+/jugadores          302→login 200          403          403          403          403          403          403          403          
+/jugadores/create   302→login 200          403          403          403          403          403          403          403          
+/jugadores/1        302→login 200          403          403          403          403          403          403          403          
+/jugadores/1/edit   302→login 200          403          403          403          403          403          403          403          
+/jugadores/4/abonos 302→login 200          403          403          403          403          403          403          403          
+/mesas              302→login 200          403          403          403          403          403          403          403          
+/mesas/create       302→login 200          403          403          403          403          403          403          403          
+/mesas/1/edit       302→login 200          403          403          403          403          403          403          403          
+/turnos             302→login 200          403          403          403          403          403          403          403          
+/turnos/create      302→login 200          403          403          403          403          403          403          403          
+/turnos/6           302→login 200          403          403          403          403          403          403          403          
+/ganancias          302→login 200          403          403          403          200          200          403          403          
+/suspensiones       302→login 200          403          403          403          403          403          403          403          
+/mis-conceptos      302→login 403          403          403          403          200          200          403          403          
+/mi-mesa            302→login 403          200          200          200          403          403          403          403          
+/mi-cuenta          302→login 403          403          403          200          403          403          200          200          
+/mi-historial       302→login 403          403          403          200          403          403          200          200          
+/notificaciones     302→login 200          200          200          200          200          200          200          200          
+
+== 3. Escrituras: datos vacíos para los roles permitidos (la validación las rechaza) y 403 para los demás
+Escritura                         admin        crupier1     crupier2     supervisor1  supervisor2  jugador1     jugador2     
+POST /empleados (vacío)          302→/notificaciones403          403          403          403          403          403          
+POST /jugadores (vacío)          302→/notificaciones403          403          403          403          403          403          
+PUT /jugadores/1 (vacío)         302→/notificaciones403          403          403          403          403          403          
+POST /mesas (vacío)              302→/notificaciones403          403          403          403          403          403          
+DELETE /mesas/1 (tiene asignaciones)302→/notificaciones403          403          403          403          403          403          
+POST /turnos (vacío)             302→/notificaciones403          403          403          403          403          403          
+POST /turnos/6/asignaciones (vacío)302→/notificaciones403          403          403          403          403          403          
+POST /jugadores/4/abonos (vacío) 302→/notificaciones403          403          403          403          403          403          
+POST /mis-conceptos/10 (vacío)   403          403          403          302→/notificaciones302→/notificaciones403          403          
+POST /rondas/8/apuestas (vacío)  403          302→/notificaciones302→/notificaciones403          403          403          403          
+POST /rondas/8/cerrar (vacío)    403          302→/notificaciones302→/notificaciones403          403          403          403          
+GET /apuestas/1/editar            403          403          403          403          403          403          403          
+
+== 4. Operaciones sobre registros ajenos con datos válidos (ninguna cambió datos; se comprobó en la base)
+supervisor2 registra concepto en la asignación 1 de supervisor1: 403
+crupier2 cierra la ronda 8 de R-01 (mesa de crupier1): 403
+crupier2 registra apuesta en la ronda 8 de R-01: 403
+crupier3 abre ronda en B-01 (mesa de crupier2): 403
+crupier1 anula la ronda 9 de P-01 (mesa de crupier3): 403
+admin pide pausa sin perfil de jugador: 403
+supervisor1 pide pausa sin perfil de jugador: 403
+jugador2 (ya suspendido) pide pausa: 302→/notificaciones
+jugador1 finaliza la investigación 2: 403
+supervisor1 finaliza la investigación 2: 403
+crupier1 registra un jugador: 403
+jugador1 marca como leída una notificación ajena (21b11379-1c69-4089-82ff-3987bef9ab01): 404
+
+== 5. Sesiones y Zero Knowledge
+1. Campos enviados al iniciar sesión: _token, username, nonce, respuesta (la contraseña no viaja)
+   login admin: 302 http://127.0.0.1:8011/inicio
+3. Con la sesión abierta, GET /empleados: 200
+4. Reenviar la misma respuesta capturada desde otra sesión: 302 http://127.0.0.1:8011/login  -> GET /inicio: 302 http://127.0.0.1:8011/login
+5. Enviar SHA-256(contraseña) sin nonce como respuesta: 302 http://127.0.0.1:8011/login
+7. Cerrar sesión: 302 http://127.0.0.1:8011/login
+8. Después de cerrar sesión, GET /empleados: 302 http://127.0.0.1:8011/login
+9. Reutilizar la cookie de sesión anterior al cierre, GET /empleados: 302 http://127.0.0.1:8011/login
+10. POST /logout sin sesión: 419 
+6. Enviar la contraseña en claro como respuesta: 302 http://127.0.0.1:8011/login  (mensaje: «El formato del campo respuesta no es válido.»)
+   Contraseña incorrecta: «Usuario o contraseña incorrectos.»
+
+== 6. Contraseñas almacenadas (se compara con SHA-256 de la contraseña de prueba; no se imprime ningún valor)
+admin        longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+crupier1     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+crupier2     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+crupier3     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+supervisor1  longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+supervisor2  longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+jugador1     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+jugador2     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+jugador3     longitud=64 hex_minusculas=si igual_a_sha256(clave_de_prueba)=si parece_bcrypt=no
+jugador4 (creado desde el formulario de la interfaz): longitud=64 igual_a_sha256(clave)=si

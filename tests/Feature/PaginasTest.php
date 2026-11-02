@@ -6,6 +6,7 @@ use App\Enums\EstadoApuesta;
 use App\Models\Juego;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\Feature\Concerns\CreaCasino;
 use Tests\TestCase;
 
@@ -106,5 +107,12 @@ class PaginasTest extends TestCase
 
         $this->actingAs($sinPerfil)->get(route('mi-cuenta'))->assertForbidden();
         $this->get(route('mi-historial'))->assertForbidden();
+    }
+
+    public function test_fa_00_paginas_de_error_404_y_419_en_espanol(): void
+    {
+        Route::get('/prueba-sesion-expirada', fn () => abort(419));
+        $this->get('/pagina-que-no-existe')->assertNotFound()->assertSee('La página que buscas no existe.');
+        $this->get('/prueba-sesion-expirada')->assertStatus(419)->assertSee('La sesión expiró. Vuelve a cargar la página e inténtalo de nuevo.');
     }
 }

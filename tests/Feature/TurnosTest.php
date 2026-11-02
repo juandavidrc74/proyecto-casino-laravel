@@ -59,6 +59,16 @@ class TurnosTest extends TestCase
         $this->post(route('turnos.store'), $this->payload(['hora_inicio' => '09:59', 'hora_fin' => '11:00']))->assertSessionHasErrors('hora_inicio');
     }
 
+    public function test_d10_turno_contiguo_a_uno_guardado_con_segundos_no_cuenta_como_solape(): void
+    {
+        $this->admin();
+        Turno::create(['fecha' => '2026-10-30', 'hora_inicio' => '08:00:00', 'hora_fin' => '10:00:00']);
+        $this->post(route('turnos.store'), $this->payload(['hora_inicio' => '10:00', 'hora_fin' => '12:00']))->assertRedirect(route('turnos.index'));
+        $this->post(route('turnos.store'), $this->payload(['hora_inicio' => '06:00', 'hora_fin' => '08:00']))->assertRedirect(route('turnos.index'));
+        $this->post(route('turnos.store'), $this->payload(['hora_inicio' => '09:59', 'hora_fin' => '10:30']))->assertSessionHasErrors('hora_inicio');
+        $this->assertDatabaseCount('turnos', 3);
+    }
+
     public function test_d10_al_editar_el_propio_turno_no_cuenta_como_solape(): void
     {
         $this->admin();
